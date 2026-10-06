@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Public trade benchmarks{% endblock %}
+{% block content %}
+<h1>Public trade benchmarks</h1>
+<p>Public aggregate statistics. Not transaction data. Not dossiers.</p>
+{% if benchmarks %}
+<table>
+<tr><th>Country</th><th>Partner</th><th>HS</th><th>Period</th><th>Value USD</th><th>Quantity</th><th>Derived unit value</th><th>Source</th><th>As of</th><th>License</th></tr>
+{% for b in benchmarks %}
+<tr>
+<td>{{ b.country }}</td><td>{{ b.partner_country or '—' }}</td><td>{{ b.hs_code }}</td><td>{{ b.period }}</td>
+<td>{{ b.value_usd }}</td><td>{{ b.quantity }} {{ b.unit or '' }}</td>
+<td>{% if b.quantity %}{{ "%.2f"|format(b.value_usd / b.quantity) }} <span class="tag">derived</span>{% else %}data not available{% endif %}</td>
+<td><a href="{{ b.source_url }}">{{ b.source_name }}</a></td><td>{{ b.as_of_date }}</td><td>{{ b.license }}</td>
+</tr>
+{% endfor %}
+</table>
+{% else %}
+<p><em>No benchmark rows loaded yet — data not available. Upload a source CSV to populate.</em></p>
+{% endif %}
+{% endblock %}

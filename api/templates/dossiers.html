@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Dossiers{% endblock %}
+{% block content %}
+<h1>Shipment dossiers <span class="badge synth">SYNTHETIC DEMO DATA</span></h1>
+<p>
+<strong>{{ stats.n }}</strong> dossiers ·
+<strong>{{ stats.verified }}</strong> verified ·
+<strong>{{ stats.awaiting }}</strong> awaiting review
+</p>
+<form method="get" action="/dossiers">
+<select name="code"><option value="">All exception codes</option>
+{% for c in codes %}<option value="{{ c.code }}" {% if q_code==c.code %}selected{% endif %}>{{ c.code }}</option>{% endfor %}</select>
+<select name="status"><option value="">All statuses</option>
+<option value="draft" {% if q_status=='draft' %}selected{% endif %}>draft</option>
+<option value="annotated" {% if q_status=='annotated' %}selected{% endif %}>annotated</option>
+<option value="verified" {% if q_status=='verified' %}selected{% endif %}>verified</option></select>
+<button type="submit">Filter</button>
+</form>
+<table>
+<tr><th>Reference</th><th>Lane</th><th>Commodity</th><th>HS</th><th>Ship date</th><th>Status</th></tr>
+{% for d in dossiers %}
+<tr>
+<td><a href="/dossiers/{{ d.id }}">{{ d.reference }}</a> <span class="badge synth">SYNTHETIC</span></td>
+<td>{{ d.origin }} → {{ d.destination }}</td>
+<td>{{ d.commodity }}</td>
+<td>{{ d.hs_code }}</td>
+<td>{{ d.shipment_date }}</td>
+<td>{% if d.status=='verified' %}<span class="badge verified">verified</span>{% else %}{{ d.status }}{% endif %}</td>
+</tr>
+{% endfor %}
+</table>
+<p><a href="/export/dossiers.csv">Export CSV</a> · <a href="/export/dossiers.jsonl">Export JSONL</a></p>
+{% endblock %}

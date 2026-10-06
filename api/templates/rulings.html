@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}CBP rulings — public reference layer{% endblock %}
+{% block content %}
+<h1>Public reference layer (CBP rulings)</h1>
+<p>{{ total }} rulings · US CBP CROSS, public domain. Never counted in dossier stats.</p>
+<form method="get" action="/rulings"><input name="q" value="{{ q }}" placeholder="search product, HS code, ruling no." style="width:40%"><button type="submit">Search</button></form>
+{% for r in rulings %}
+<div class="card">
+<p><strong>{{ r.ruling_number }}</strong> <span class="badge pub">public record</span> · {{ r.date[:10] }} · decided <strong>{{ r.hts_classification }}</strong></p>
+<p>{{ r.product_description[:420] }}{% if r.product_description|length > 420 %}…{% endif %}</p>
+{% if r.requester_proposed_hts %}<p><em>Requester proposed {{ r.requester_proposed_hts }}; CBP ruled {{ r.hts_classification }}.</em></p>{% endif %}
+{% if r.reasoning_summary %}<p>{{ r.reasoning_summary[:500] }}{% if r.reasoning_summary|length > 500 %}…{% endif %}</p>{% endif %}
+<p><span class="tag">{{ r.country_of_origin or 'origin n/a' }}</span> <a href="{{ r.source_url }}">source</a></p>
+</div>
+{% endfor %}
+<p><a href="/export/rulings.jsonl">Export JSONL</a></p>
+{% endblock %}

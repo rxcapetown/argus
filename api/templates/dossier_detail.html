@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Dossier {{ d.reference }}{% endblock %}
+{% block content %}
+<h1>{{ d.reference }} <span class="badge synth">SYNTHETIC DEMO DATA</span>
+{% if d.status=='verified' %}<span class="badge verified">verified</span>{% endif %}</h1>
+<p>{{ d.origin }} → {{ d.destination }} · {{ d.commodity }} · HS {{ d.hs_code }} · {{ d.incoterm }} · {{ d.shipment_date }}</p>
+<p><span class="tag">Vintage {{ d.vintage_year }} — {{ d.regime_note }}</span></p>
+
+<h2>Redaction panel</h2>
+<div class="panel">
+<div class="card"><h3>Stripped (identities &amp; identifiers)</h3>
+<ul>{% for f in stripped %}<li>{{ f }}</li>{% endfor %}</ul></div>
+<div class="card"><h3>Kept (values are the signal)</h3>
+<ul>{% for f in kept %}<li>{{ f }}</li>{% endfor %}</ul></div>
+</div>
+<p>Declared value <strong>${{ "{:,}".format(d.declared_value_usd or 0) }}</strong> ·
+Freight <strong>${{ "{:,}".format(d.freight_cost_usd or 0) }}</strong> ·
+{{ "{:,}".format(d.quantity_pcs or 0) }} pcs @ ${{ d.unit_price_usd }}/unit ·
+{{ "{:,.0f}".format(d.gross_weight_kg or 0) }} kg</p>
+
+<h2>Provenance timeline</h2>
+<ul class="timeline">
+<li><strong>Ingested</strong> — dossier created {{ d.created_at }}</li>
+<li><strong>Redacted</strong> — identities stripped at intake; values retained</li>
+{% for a in d.annotations %}
+<li><strong>Annotated</strong> by contributor <code>{{ a.contributor_code }}</code> — {{ a.exception_code }} (annotation #{{ a.id }})</li>
+{% for v in a.verifications %}
+<li><strong>Verified</strong> by <code>{{ v.verifier_code }}</code> — verdict: {{ v.verdict }}{% if v.notes %} — {{ v.notes }}{% endif %}</li>
+{% endfor %}
+{% endfor %}
+</ul>
+<p><em>Rule enforced: verifier must differ from the contributing forwarder (cross-verification).</em></p>
+
+<h2>Annotations</h2>
+{% for a in d.annotations %}
+<div class="card">
+<p><strong>{{ a.exception_code }}</strong>
+{% if d.tax_codes[a.exception_code].status=='proposed' %}<span class="badge prop">proposed v0.1</span>{% endif %}</p>
+<p><strong>Documents compared:</strong> {{ a.documents_compared }}</p>
+<p><strong>Decision:</strong> {{ a.decision }}</p>
+<p><strong>Cost impact:</strong> ${{ "{:,}".format(a.cost_impact_usd or 0) }}</p>
+<p><strong>Resolution:</strong> {{ a.resolution }}</p>
+<h4>Verify (must be a different contributor than {{ a.contributor_code }})</h4>
+<form method="post" action="/api/annotations/{{ a.id }}/verify">
+<input name="verifier_code" placeholder="verifier code (e.g. FWD-X)" required>
+<select name="verdict"><option value="confirmed">confirmed</option><option value="rejected">rejected</option><option value="needs_work">needs_work</option></select>
+<input name="notes" placeholder="notes">
+<button type="submit">Submit verification</button>
+</form>
+</div>
+{% endfor %}
+
+<h2>Add annotation</h2>
+<form method="post" action="/api/dossiers/{{ d.id }}/annotate">
+<input name="contributor_code" placeholder="contributor code" required>
+<select name="exception_code">{% for code in d.tax_codes %}<option value="{{ code }}">{{ code }}</option>{% endfor %}</select><br>
+<input name="documents_compared" placeholder="documents compared" style="width:60%">
+<input name="cost_impact_usd" type="number" placeholder="cost impact USD"><br>
+<textarea name="decision" placeholder="decision" rows="2" style="width:80%"></textarea><br>
+<textarea name="resolution" placeholder="resolution" rows="2" style="width:80%"></textarea><br>
+<button type="submit">Annotate</button>
+</form>
+{% endblock %}

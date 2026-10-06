@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}How it's sold{% endblock %}
+{% block content %}
+<h1>How it's sold <span class="badge synth">SYNTHETIC DEMO DATA</span></h1>
+<div class="panel">
+<div class="card">
+<h2>Standard</h2>
+<ul><li>Single expert annotation per dossier</li><li>Contributor attestation</li><li>Central spot-checks</li></ul>
+<p><strong>{{ standard_n }}</strong> records in demo data</p>
+<p><em>Price: assumption, to be tested with buyers</em></p>
+</div>
+<div class="card">
+<h2>Verified</h2>
+<ul><li>Double-verified: annotation + independent cross-verification</li><li>Contributor credentials attached</li><li>Full provenance datasheet</li></ul>
+<p><strong>{{ verified_n }}</strong> records in demo data</p>
+<p><em>Price: assumption, to be tested with buyers</em></p>
+</div>
+</div>
+
+<h2>Bundle preview <span class="badge synth">SYNTHETIC DEMO DATA</span></h2>
+{% for s in sample %}
+<div class="card">
+<h3>{{ s.reference }} — {{ s.exception_code }}</h3>
+<p><strong>SFT pair</strong></p>
+<pre>{
+  "prompt": "Dossier {{ s.reference }} ({{ s.commodity }}, HS {{ s.hs_code }}, {{ s.unit_price_usd }}/unit). What exception is present and what was decided?",
+  "response": "{{ s.exception_code }}: {{ s.decision }} Resolution: {{ s.resolution }}"
+}</pre>
+<p><strong>Preference pair</strong></p>
+<pre>{
+  "prompt": "Classify the exception in dossier {{ s.reference }}.",
+  "chosen": "{{ s.exception_code }} — {{ s.decision }}",
+  "rejected": "NO_EXCEPTION — documents appear consistent."
+}</pre>
+<p><strong>Eval item</strong></p>
+<pre>{
+  "input": "Dossier {{ s.reference }}: {{ s.commodity }}, HS {{ s.hs_code }}.",
+  "gold_label": "{{ s.exception_code }}"
+}</pre>
+</div>
+{% endfor %}
+
+<h2>License summary <span class="tag">draft, pending counsel</span></h2>
+<div class="card">
+<p><strong>Permitted:</strong> model training, fine-tuning, evaluation.</p>
+<p><strong>Prohibited:</strong> re-identification of parties, reselling raw dossiers.</p>
+</div>
+<p><a href="/export/dossiers.csv">Export CSV</a> · <a href="/export/dossiers.jsonl">Export JSONL</a></p>
+{% endblock %}
