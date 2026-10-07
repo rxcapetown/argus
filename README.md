@@ -2,7 +2,7 @@
 
 **Argus** is a verified-human data supply venture. Its wedge product is the **Trade
 Exception Corpus**: expert-annotated, cross-verified shipment-dossier intelligence
-on the Bangladesh → US/UK/EU apparel lane, packaged as AI training data.
+for apparel exports, packaged as AI training data.
 
 Named for Argus Panoptes, the hundred-eyed watcher of Greek myth — every record
 is seen by more than one pair of expert eyes.
