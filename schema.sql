@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS dossiers (
     incoterm           TEXT,
     shipment_date      TEXT,                 -- ISO date
     declared_value_usd INTEGER,
-    freight_cost_usd   INTEGER,
+    freight_cost_usd   REAL,
+    insured_value_usd  REAL,
     gross_weight_kg    REAL,
     quantity_pcs       INTEGER,
     unit_price_usd     REAL,
@@ -34,6 +35,9 @@ CREATE TABLE IF NOT EXISTS dossiers (
     regime_note        TEXT,                 -- regulatory regime at ship date
     synthetic          INTEGER NOT NULL DEFAULT 0,  -- 1 = synthetic demo data
     status             TEXT NOT NULL DEFAULT 'draft', -- draft | annotated | verified
+    ingested_date      TEXT,
+    redacted           INTEGER NOT NULL DEFAULT 0,
+    audit_sampled      INTEGER NOT NULL DEFAULT 0,
     created_at         TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -47,13 +51,16 @@ CREATE TABLE IF NOT EXISTS documents (
 
 CREATE TABLE IF NOT EXISTS annotations (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    annotation_ref   TEXT UNIQUE,
     dossier_id       INTEGER NOT NULL REFERENCES dossiers(id),
     contributor_id   INTEGER NOT NULL REFERENCES contributors(id),
     exception_code   TEXT NOT NULL REFERENCES taxonomy_codes(code),
+    definition       TEXT,
     documents_compared TEXT,
     decision         TEXT,
-    cost_impact_usd  INTEGER,
+    cost_impact_usd  REAL,
     resolution       TEXT,
+    annotation_status TEXT,
     created_at       TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

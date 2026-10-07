@@ -47,11 +47,12 @@ Prices are the discrepancy signal — a corpus without values is useless.
 5. Bundle into tiers: **Standard** (attestation + spot-checks) / **Verified**
    (double-verified, credentials attached, datasheet)
 
-## Public reference layer
+## Included demo datasets
 
-`seed/cross_sample.jsonl` holds 32 CBP CROSS tariff-classification rulings
-(chapters 61/62, US public domain). `ingest/cross_ingest.py` can pull more —
-polite by contract (~1 req/sec, stops on 429/403).
+- `seed/synthetic_dossiers_full.jsonl` holds **1,876 synthetic dossiers** and **1,976 annotations**. The source distribution is preserved: 480 dossiers are fully verified by a different contributor and 232 are audit-sampled. Every dossier remains labeled synthetic.
+- `data/cross_ch61_62_final_20261006.jsonl` holds the final user-stopped harvest of **1,132 CBP CROSS rulings** for chapters 61/62 (U.S. public domain). This public reference layer is never counted in dossier metrics.
+
+`python scripts/init_db.py` replaces the local database from those two full snapshots. `ingest/cross_ingest.py` remains available for a later, deliberate refresh and is polite by contract (~1 req/sec, stops on 429/403).
 
 ## Setup
 
