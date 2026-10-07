@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Trade Exception Corpus — we teach machines how trade experts think{% endblock %}
+{% block content %}
+<div style="text-align:center;padding:2.5rem 1rem 1.5rem">
+<h1 style="font-size:2.2rem;margin-bottom:.4rem">We teach machines how<br>trade experts think.</h1>
+<p style="font-size:1.1rem;color:#444;max-width:36rem;margin:0 auto">
+The Trade Exception Corpus for apparel exports — expert-reviewed decisions,
+evidence, and outcomes from real shipment workflows, structured for AI training.
+</p>
+<p style="margin-top:1.4rem">
+<a href="/redact"><button style="font-size:1.05rem;padding:.7rem 1.6rem">Contribute documents — redacted your way</button></a>
+</p>
+<p style="color:#666;font-size:.9rem">Upload a shipment PDF. See exactly what gets redacted.<br>Nothing is shared until you approve it, item by item.</p>
+</div>
+
+<div class="panel" style="grid-template-columns:repeat(4,1fr);text-align:center">
+<div class="card"><h2 style="margin:.2rem">{{ stats.n }}</h2><p>dossiers</p></div>
+<div class="card"><h2 style="margin:.2rem">{{ stats.verified }}</h2><p>verified</p></div>
+<div class="card"><h2 style="margin:.2rem">{{ rulings }}</h2><p>public CBP rulings</p></div>
+<div class="card"><h2 style="margin:.2rem">{{ codes }}</h2><p>exception types</p></div>
+</div>
+
+<div class="card">
+<h3>How contributing works</h3>
+<ol class="timeline">
+<li><strong>Upload</strong> — a commercial invoice, bill of lading, or packing list. List any names that must never appear.</li>
+<li><strong>Review</strong> — side-by-side: your original next to the proposed redaction, every detected item boxed and listed.</li>
+<li><strong>Approve</strong> — uncheck anything to restore it, then confirm. Approved items are permanently removed from the document — not covered up — and you get an audit log.</li>
+</ol>
+<p>Names, addresses, contacts, B/L and container numbers never enter the corpus.
+Prices, quantities, weights, and charges stay — they're the signal.</p>
+</div>
+
+<div class="card">
+<h3>Explore the corpus</h3>
+<p>
+<a href="/dossiers">Dossiers</a> ·
+<a href="/taxonomy">Exception taxonomy</a> ·
+<a href="/rulings">CBP rulings</a> ·
+<a href="/sold">How it's sold</a>
+</p>
+<p><span class="badge synth">SYNTHETIC DEMO DATA</span>
+<span style="color:#666;font-size:.85rem">Demo database is synthetic and clearly labeled; rulings are U.S. public records.</span></p>
+</div>
+{% endblock %}

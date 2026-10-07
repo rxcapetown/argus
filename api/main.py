@@ -142,7 +142,15 @@ def healthz():
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
-    return RedirectResponse("/dossiers", status_code=302)
+    stats = one(
+        """SELECT COUNT(*) AS n,
+                  SUM(CASE WHEN status='verified' THEN 1 ELSE 0 END) AS verified
+           FROM dossiers"""
+    )
+    rulings = one("SELECT COUNT(*) AS n FROM cbp_rulings")["n"]
+    codes = one("SELECT COUNT(*) AS n FROM taxonomy_codes")["n"]
+    return templates.TemplateResponse(request, "landing.html",
+        _template_ctx(request, stats=stats, rulings=rulings, codes=codes))
 
 
 @app.get("/dossiers", response_class=HTMLResponse)
