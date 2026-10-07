@@ -217,31 +217,6 @@ def benchmarks_page(request: Request):
     return templates.TemplateResponse(request, "benchmarks.html", _template_ctx(request, benchmarks=bms))
 
 
-@app.get("/sold", response_class=HTMLResponse)
-def sold_page(request: Request):
-    standard_n = one(
-        "SELECT COUNT(DISTINCT dossier_id) AS n FROM annotations")["n"]
-    verified_n = one(
-        """SELECT COUNT(DISTINCT a.dossier_id) AS n FROM annotations a
-           JOIN verifications v ON v.annotation_id = a.id AND v.verdict = 'confirmed'""")["n"]
-    sample = rows(
-        """SELECT a.*, d.reference, d.commodity, d.hs_code, d.unit_price_usd,
-                  c.contributor_code
-           FROM annotations a JOIN dossiers d ON d.id = a.dossier_id
-           JOIN contributors c ON c.id = a.contributor_id
-           ORDER BY a.id LIMIT 3"""
-    )
-    for s in sample:
-        s["verifications"] = rows(
-            """SELECT v.*, c.contributor_code AS verifier_code FROM verifications v
-               JOIN contributors c ON c.id = v.verifier_contributor_id
-               WHERE v.annotation_id = ?""",
-            (s["id"],),
-        )
-    return templates.TemplateResponse(request, "sold.html", _template_ctx(
-        request, standard_n=standard_n, verified_n=verified_n, sample=sample))
-
-
 # ---------- JSON API ----------
 
 @app.get("/api/dossiers")
