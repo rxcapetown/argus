@@ -20,6 +20,8 @@ import pymupdf  # PyMuPDF — redaction flow
 
 from redact.detect import Finding, detect as detect_entities
 from redact.engine import apply_redactions, audit_log, render_preview
+from redact.terms import (TERMS_PARAGRAPHS, TERMS_TITLE, TERMS_VERSION,
+                          terms_sha256)
 
 ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = os.environ.get("ARGUS_DB", str(ROOT / "argus.db"))
@@ -424,7 +426,9 @@ def _job_dir(job_id: str) -> "Path":
 
 @app.get("/redact", response_class=HTMLResponse)
 def redact_upload_page(request: Request):
-    return templates.TemplateResponse(request, "redact_upload.html", _template_ctx(request, stripped=STRIPPED_FIELDS, kept=KEPT_FIELDS))
+    return templates.TemplateResponse(request, "redact_upload.html", _template_ctx(request, stripped=STRIPPED_FIELDS, kept=KEPT_FIELDS,
+                      terms_title=TERMS_TITLE, terms_paragraphs=TERMS_PARAGRAPHS,
+                      terms_version=TERMS_VERSION))
 
 
 @app.post("/redact/upload")
@@ -433,8 +437,12 @@ async def redact_upload(
     _auth: bool = Depends(require_api_key),
     contributor_code: str = Form(""),
     extra_terms: str = Form(""),
+    terms_accepted: str = Form(""),
+    terms_version: str = Form(""),
     file: UploadFile = File(...),
 ):
+    if terms_accepted != "1" or terms_version != TERMS_VERSION:
+        raise HTTPException(400, "terms must be accepted before uploading")
     data = await file.read()
     if not data.startswith(b"%PDF"):
         raise HTTPException(400, "only PDF uploads are supported in this version")
@@ -442,6 +450,18 @@ async def redact_upload(
     jobdir = REDACT_DIR / job_id
     jobdir.mkdir(parents=True)
     (jobdir / "original.pdf").write_bytes(data)
+    # Consent trail: what was accepted, when, by whom — never the doc values.
+    from datetime import datetime, timezone
+    (jobdir / "consent.json").write_text(json.dumps({
+        "job_id": job_id,
+        "contributor_code": contributor_code,
+        "terms_title": TERMS_TITLE,
+        "terms_version": TERMS_VERSION,
+        "terms_sha256": terms_sha256(),
+        "accepted_at": datetime.now(timezone.utc).isoformat(),
+        "user_agent": request.headers.get("user-agent", ""),
+        "client": request.client.host if request.client else "",
+    }, indent=2))
     terms = [t.strip() for t in extra_terms.replace(",", "\n").splitlines() if t.strip()]
     doc = pymupdf.open(stream=data, filetype="pdf")
     findings = detect_entities(doc, extra_terms=terms)
@@ -482,9 +502,12 @@ async def redact_confirm(request: Request, job_id: str,
     redacted = apply_redactions(original, findings)
     (jobdir / "redacted.pdf").write_bytes(redacted)
     meta = json.loads((jobdir / "meta.json").read_text())
+    consent_path = jobdir / "consent.json"
+    terms_v = json.loads(consent_path.read_text()).get("terms_version") if consent_path.is_file() else None
     audit = audit_log(job_id=job_id, filename=meta["filename"], original=original,
                       redacted=redacted, findings=findings,
-                      contributor_code=meta.get("contributor_code", ""))
+                      contributor_code=meta.get("contributor_code", ""),
+                      terms_version=terms_v)
     (jobdir / "audit.json").write_text(json.dumps(audit, indent=2))
     return templates.TemplateResponse(request, "redact_done.html", _template_ctx(request, job_id=job_id, audit=audit))
 

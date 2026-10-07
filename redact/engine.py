@@ -67,13 +67,14 @@ def extract_text(pdf_bytes: bytes) -> str:
 
 
 def audit_log(*, job_id: str, filename: str, original: bytes, redacted: bytes,
-              findings: list[Finding], contributor_code: str) -> dict:
+              findings: list[Finding], contributor_code: str,
+              terms_version: str | None = None) -> dict:
     """Provenance record. Counts and kinds only — never redacted values."""
     applied = [f for f in findings if f.selected]
     by_kind: dict[str, int] = {}
     for f in applied:
         by_kind[f.kind] = by_kind.get(f.kind, 0) + 1
-    return {
+    log = {
         "job_id": job_id,
         "tool": "argus-redact/0.1",
         "contributor_code": contributor_code,
@@ -88,3 +89,6 @@ def audit_log(*, job_id: str, filename: str, original: bytes, redacted: bytes,
         "note": ("True redaction: removed from the PDF content stream. "
                  "Values are never stored in this log."),
     }
+    if terms_version:
+        log["terms_accepted"] = terms_version
+    return log

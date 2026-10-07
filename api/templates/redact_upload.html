@@ -17,16 +17,54 @@ until you confirm.</p>
 </div>
 
 <div class="card">
-<form action="/redact/upload" method="post" enctype="multipart/form-data">
+<form id="uploadForm" action="/redact/upload" method="post" enctype="multipart/form-data">
 <label>Contributor code<br><input type="text" name="contributor_code" placeholder="e.g. FWD-014" required style="width:16rem"></label><br><br>
 <label>Names that must never appear (one per line) — your company, key clients<br>
 <textarea name="extra_terms" rows="3" cols="48" placeholder="Acme Freight Ltd&#10;Globex Apparel Inc"></textarea></label><br><br>
 <label>Document (PDF)<br><input type="file" name="file" accept="application/pdf" required></label><br><br>
 {% if api_key_required %}<input type="password" name="api_key" placeholder="API key" required><br><br>{% endif %}
+<input type="hidden" name="terms_accepted" id="termsAccepted" value="">
+<input type="hidden" name="terms_version" value="{{ terms_version }}">
 <button type="submit">Upload &amp; detect sensitive info</button>
 </form>
 </div>
 <p style="color:#666;font-size:.85rem">Redaction is true redaction: approved items are removed from the PDF content
 stream, not covered with boxes. An audit log records <em>what kinds</em> of items were
 removed and how many — never their values.</p>
+
+<div id="termsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;align-items:center;justify-content:center">
+<div style="background:#fff;border-radius:10px;max-width:34rem;width:92%;max-height:84vh;overflow:auto;padding:1.6rem">
+<h2 style="margin-top:0">{{ terms_title }}</h2>
+<p class="tag">version {{ terms_version }} · draft pending counsel review</p>
+{% for p in terms_paragraphs %}<p>{{ p }}</p>{% endfor %}
+<div style="display:flex;gap:.8rem;margin-top:1.2rem">
+<button id="termsDecline" style="background:#fff;color:#1a1a1a;border:1px solid #1a1a1a">Decline</button>
+<button id="termsAccept">Accept &amp; upload</button>
+</div>
+</div>
+</div>
+<script>
+(function(){
+  var form = document.getElementById('uploadForm');
+  var modal = document.getElementById('termsModal');
+  var accepted = document.getElementById('termsAccepted');
+  var submitting = false;
+  form.addEventListener('submit', function(e){
+    if (submitting) return;
+    e.preventDefault();
+    modal.style.display = 'flex';
+  });
+  document.getElementById('termsDecline').addEventListener('click', function(){
+    modal.style.display = 'none';
+  });
+  modal.addEventListener('click', function(e){
+    if (e.target === modal) modal.style.display = 'none';
+  });
+  document.getElementById('termsAccept').addEventListener('click', function(){
+    accepted.value = '1';
+    submitting = true;
+    form.submit();
+  });
+})();
+</script>
 {% endblock %}
