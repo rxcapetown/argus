@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Review redaction{% endblock %}
+{% block content %}
+<h1>Review the redaction</h1>
+<p>Left: your original. Right: what leaves your office — <span style="color:#a00;font-weight:700">red boxes will be permanently removed</span>.
+Uncheck any item to restore it before confirming.</p>
+
+<form action="/redact/confirm/{{ job_id }}" method="post">
+{% if api_key_required %}<input type="password" name="api_key" placeholder="API key" required><br><br>{% endif %}
+
+{% for clean, proposed in pages %}
+<div class="card">
+<h3>Page {{ loop.index }}</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+<div><p class="tag">Original</p><img src="data:image/png;base64,{{ clean }}" style="width:100%;border:1px solid #ccc"></div>
+<div><p class="tag">Proposed redaction</p><img src="data:image/png;base64,{{ proposed }}" style="width:100%;border:1px solid #ccc"></div>
+</div>
+</div>
+{% endfor %}
+
+<div class="card">
+<h3>Detected items ({{ findings|length }})</h3>
+<table>
+<tr><th></th><th>Page</th><th>Type</th><th>Detail</th></tr>
+{% for f in findings %}
+<tr>
+<td><input type="checkbox" name="keep" value="{{ f.id }}" {% if f.selected %}checked{% endif %}></td>
+<td>{{ f.page + 1 }}</td>
+<td><span class="tag">{{ f.kind }}</span></td>
+<td>{{ f.label }}</td>
+</tr>
+{% endfor %}
+</table>
+<p style="color:#666;font-size:.85rem">Checked = redacted. Unchecked = restored to the document.</p>
+<button type="submit">Confirm redaction &amp; download</button>
+</div>
+</form>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Contribute — redacted upload{% endblock %}
+{% block content %}
+<h1>Contribute documents, <span style="color:#5b21b6">keep your clients</span></h1>
+<p>Upload a shipment document (PDF). Argus detects identifying information,
+shows you <strong>exactly what will be removed</strong> side-by-side, and only
+finalizes the redaction when you approve it — item by item. Nothing is shared
+until you confirm.</p>
+
+<div class="panel">
+<div class="card"><h3>Always stripped</h3><ul>
+{% for f in stripped %}<li>{{ f }}</li>{% endfor %}
+</ul></div>
+<div class="card"><h3>Always kept</h3><ul>
+{% for f in kept %}<li>{{ f }}</li>{% endfor %}
+</ul></div>
+</div>
+
+<div class="card">
+<form action="/redact/upload" method="post" enctype="multipart/form-data">
+<label>Contributor code<br><input type="text" name="contributor_code" placeholder="e.g. FWD-014" required style="width:16rem"></label><br><br>
+<label>Names that must never appear (one per line) — your company, key clients<br>
+<textarea name="extra_terms" rows="3" cols="48" placeholder="Acme Freight Ltd&#10;Globex Apparel Inc"></textarea></label><br><br>
+<label>Document (PDF)<br><input type="file" name="file" accept="application/pdf" required></label><br><br>
+{% if api_key_required %}<input type="password" name="api_key" placeholder="API key" required><br><br>{% endif %}
+<button type="submit">Upload &amp; detect sensitive info</button>
+</form>
+</div>
+<p style="color:#666;font-size:.85rem">Redaction is true redaction: approved items are removed from the PDF content
+stream, not covered with boxes. An audit log records <em>what kinds</em> of items were
+removed and how many — never their values.</p>
+{% endblock %}

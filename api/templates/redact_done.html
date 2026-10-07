@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Redaction complete{% endblock %}
+{% block content %}
+<h1>Redaction complete <span class="badge verified">verified</span></h1>
+<div class="card">
+<p><strong>{{ audit.entities_redacted }}</strong> items permanently removed across
+<strong>{{ audit.redaction_kinds|length }}</strong> categories. The audit log records
+kinds and counts only — never the removed values.</p>
+<table>
+<tr><th>Category</th><th>Items removed</th></tr>
+{% for kind, n in audit.redaction_kinds.items() %}
+<tr><td><span class="tag">{{ kind }}</span></td><td>{{ n }}</td></tr>
+{% endfor %}
+</table>
+<p class="tag">original sha256: {{ audit.original_sha256[:16] }}…</p>
+<p class="tag">redacted sha256: {{ audit.redacted_sha256[:16] }}…</p>
+<p>
+<a href="/redact/download/{{ job_id }}/redacted.pdf"><button>Download redacted PDF</button></a>
+<a href="/redact/download/{{ job_id }}/audit.json"><button>Audit log (JSON)</button></a>
+</p>
+</div>
+<div class="card">
+<h3>What happens next</h3>
+<p>The redacted document can now enter the contribution flow: it is annotated
+against the exception taxonomy by your team, then cross-verified by a different
+practitioner who never sees the source document. Your original never leaves
+this job folder.</p>
+</div>
+{% endblock %}

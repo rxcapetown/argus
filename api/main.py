@@ -11,10 +11,15 @@ import secrets
 import sqlite3
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request, Security
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, Security, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.security import APIKeyHeader
 from fastapi.templating import Jinja2Templates
+
+import pymupdf  # PyMuPDF — redaction flow
+
+from redact.detect import Finding, detect as detect_entities
+from redact.engine import apply_redactions, audit_log, render_preview
 
 ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = os.environ.get("ARGUS_DB", str(ROOT / "argus.db"))
@@ -159,7 +164,7 @@ def dossiers_page(request: Request, code: str = "", status: str = ""):
                   SUM(CASE WHEN status='annotated' THEN 1 ELSE 0 END) AS awaiting
            FROM dossiers"""
     )
-    return templates.TemplateResponse("dossiers.html", _template_ctx(
+    return templates.TemplateResponse(request, "dossiers.html", _template_ctx(
         request, dossiers=dossiers, codes=codes, stats=stats,
         q_code=code, q_status=status))
 
@@ -169,15 +174,14 @@ def dossier_page(request: Request, dossier_id: int):
     d = dossier_detail(dossier_id)
     if not d:
         raise HTTPException(404, "dossier not found")
-    return templates.TemplateResponse("dossier_detail.html", _template_ctx(
+    return templates.TemplateResponse(request, "dossier_detail.html", _template_ctx(
         request, d=d, stripped=STRIPPED_FIELDS, kept=KEPT_FIELDS))
 
 
 @app.get("/taxonomy", response_class=HTMLResponse)
 def taxonomy_page(request: Request):
     codes = rows("SELECT * FROM taxonomy_codes ORDER BY status, code")
-    return templates.TemplateResponse("taxonomy.html",
-        _template_ctx(request, codes=codes))
+    return templates.TemplateResponse(request, "taxonomy.html", _template_ctx(request, codes=codes))
 
 
 @app.get("/rulings", response_class=HTMLResponse)
@@ -193,15 +197,14 @@ def rulings_page(request: Request, q: str = ""):
     else:
         rulings = rows("SELECT * FROM cbp_rulings ORDER BY date DESC LIMIT 200")
     total = one("SELECT COUNT(*) AS n FROM cbp_rulings")["n"]
-    return templates.TemplateResponse("rulings.html", _template_ctx(
+    return templates.TemplateResponse(request, "rulings.html", _template_ctx(
         request, rulings=rulings, total=total, q=q))
 
 
 @app.get("/benchmarks", response_class=HTMLResponse)
 def benchmarks_page(request: Request):
     bms = rows("SELECT * FROM trade_benchmarks ORDER BY country, hs_code LIMIT 200")
-    return templates.TemplateResponse("benchmarks.html",
-        _template_ctx(request, benchmarks=bms))
+    return templates.TemplateResponse(request, "benchmarks.html", _template_ctx(request, benchmarks=bms))
 
 
 @app.get("/sold", response_class=HTMLResponse)
@@ -225,7 +228,7 @@ def sold_page(request: Request):
                WHERE v.annotation_id = ?""",
             (s["id"],),
         )
-    return templates.TemplateResponse("sold.html", _template_ctx(
+    return templates.TemplateResponse(request, "sold.html", _template_ctx(
         request, standard_n=standard_n, verified_n=verified_n, sample=sample))
 
 
@@ -386,6 +389,106 @@ def api_rulings(q: str = Query("")):
 @app.get("/api/benchmarks")
 def api_benchmarks():
     return JSONResponse(rows("SELECT * FROM trade_benchmarks ORDER BY country, hs_code"))
+
+
+# ---------- redaction flow: upload -> review -> confirm ----------
+
+REDACT_DIR = ROOT / "data" / "redact_jobs"
+REDACT_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _finding_to_dict(f: Finding) -> dict:
+    return {"id": f.id, "page": f.page, "rect": list(f.rect),
+            "kind": f.kind, "label": f.label, "selected": f.selected}
+
+
+def _finding_from_dict(d: dict) -> Finding:
+    return Finding(id=d["id"], page=d["page"], rect=tuple(d["rect"]),
+                   kind=d["kind"], label=d["label"], selected=d.get("selected", True))
+
+
+def _job_dir(job_id: str) -> "Path":
+    p = REDACT_DIR / job_id
+    if not p.is_dir():
+        raise HTTPException(404, "redaction job not found")
+    return p
+
+
+@app.get("/redact", response_class=HTMLResponse)
+def redact_upload_page(request: Request):
+    return templates.TemplateResponse(request, "redact_upload.html", _template_ctx(request, stripped=STRIPPED_FIELDS, kept=KEPT_FIELDS))
+
+
+@app.post("/redact/upload")
+async def redact_upload(
+    request: Request,
+    _auth: bool = Depends(require_api_key),
+    contributor_code: str = Form(""),
+    extra_terms: str = Form(""),
+    file: UploadFile = File(...),
+):
+    data = await file.read()
+    if not data.startswith(b"%PDF"):
+        raise HTTPException(400, "only PDF uploads are supported in this version")
+    job_id = secrets.token_hex(8)
+    jobdir = REDACT_DIR / job_id
+    jobdir.mkdir(parents=True)
+    (jobdir / "original.pdf").write_bytes(data)
+    terms = [t.strip() for t in extra_terms.replace(",", "\n").splitlines() if t.strip()]
+    doc = pymupdf.open(stream=data, filetype="pdf")
+    findings = detect_entities(doc, extra_terms=terms)
+    doc.close()
+    (jobdir / "findings.json").write_text(
+        json.dumps([_finding_to_dict(f) for f in findings], indent=2))
+    (jobdir / "meta.json").write_text(json.dumps({
+        "filename": file.filename, "contributor_code": contributor_code,
+        "extra_terms": terms}))
+    return RedirectResponse(f"/redact/review/{job_id}", status_code=303)
+
+
+@app.get("/redact/review/{job_id}", response_class=HTMLResponse)
+def redact_review_page(request: Request, job_id: str):
+    jobdir = _job_dir(job_id)
+    original = (jobdir / "original.pdf").read_bytes()
+    findings = [_finding_from_dict(d)
+                for d in json.loads((jobdir / "findings.json").read_text())]
+    proposed = render_preview(original, findings)
+    clean = render_preview(original, [])
+    pages = list(zip(clean, proposed))
+    return templates.TemplateResponse(request, "redact_review.html", _template_ctx(request, job_id=job_id, pages=pages, findings=findings))
+
+
+@app.post("/redact/confirm/{job_id}", response_class=HTMLResponse)
+async def redact_confirm(request: Request, job_id: str,
+                         _auth: bool = Depends(require_api_key)):
+    jobdir = _job_dir(job_id)
+    form = await request.form()
+    keep = set(form.getlist("keep"))
+    findings = [_finding_from_dict(d)
+                for d in json.loads((jobdir / "findings.json").read_text())]
+    for f in findings:
+        f.selected = f.id in keep
+    (jobdir / "findings.json").write_text(
+        json.dumps([_finding_to_dict(f) for f in findings], indent=2))
+    original = (jobdir / "original.pdf").read_bytes()
+    redacted = apply_redactions(original, findings)
+    (jobdir / "redacted.pdf").write_bytes(redacted)
+    meta = json.loads((jobdir / "meta.json").read_text())
+    audit = audit_log(job_id=job_id, filename=meta["filename"], original=original,
+                      redacted=redacted, findings=findings,
+                      contributor_code=meta.get("contributor_code", ""))
+    (jobdir / "audit.json").write_text(json.dumps(audit, indent=2))
+    return templates.TemplateResponse(request, "redact_done.html", _template_ctx(request, job_id=job_id, audit=audit))
+
+
+@app.get("/redact/download/{job_id}/{name}")
+def redact_download(job_id: str, name: str, _auth: bool = Depends(require_api_key)):
+    if name not in ("redacted.pdf", "audit.json"):
+        raise HTTPException(404)
+    p = _job_dir(job_id) / name
+    if not p.is_file():
+        raise HTTPException(404)
+    return FileResponse(p, filename=f"argus_{job_id}_{name}")
 
 
 # ---------- exports (filenames carry the synthetic label) ----------
