@@ -67,6 +67,26 @@ Pages: `/dossiers`, `/taxonomy`, `/rulings`, `/benchmarks`, `/sold`.
 Exports: `/export/dossiers.csv`, `/export/dossiers.jsonl`, `/export/rulings.jsonl`
 (filenames carry SYNTHETIC-DEMO-DATA / PUBLIC-RECORDS labels).
 
+## Auth
+
+All state-changing endpoints (`POST /api/dossiers`, `POST .../annotate`,
+`POST .../verify`, `POST /api/agreements/accept`) and all `/export/*`
+endpoints require an API key when the `ARGUS_API_KEY` environment variable is
+set. Pass it as the `X-API-Key` header, an `api_key` query parameter, or an
+`api_key` form field (the UI renders a password field on its forms
+automatically when a key is configured).
+
+When `ARGUS_API_KEY` is unset the app runs in open demo mode and logs a
+startup warning. **Always set it in production:**
+
+```bash
+export ARGUS_API_KEY="$(openssl rand -hex 32)"
+uvicorn api.main:app --host 0.0.0.0 --port 8000
+```
+
+Read-only pages and `GET /api/*` stay public (demo showcase). Per-user
+contributor accounts are the planned next step beyond this shared key.
+
 ## Deploy
 
 **Railway (recommended):** connect this repo, Railway detects the `Dockerfile`

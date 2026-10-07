@@ -42,6 +42,7 @@ Freight <strong>${{ "{:,}".format(d.freight_cost_usd or 0) }}</strong> ·
 <p><strong>Resolution:</strong> {{ a.resolution }}</p>
 <h4>Verify (must be a different contributor than {{ a.contributor_code }})</h4>
 <form method="post" action="/api/annotations/{{ a.id }}/verify">
+{% if api_key_required %}<input type="password" name="api_key" placeholder="API key" required><br>{% endif %}
 <input name="verifier_code" placeholder="verifier code (e.g. FWD-X)" required>
 <select name="verdict"><option value="confirmed">confirmed</option><option value="rejected">rejected</option><option value="needs_work">needs_work</option></select>
 <input name="notes" placeholder="notes">
@@ -52,6 +53,7 @@ Freight <strong>${{ "{:,}".format(d.freight_cost_usd or 0) }}</strong> ·
 
 <h2>Add annotation</h2>
 <form method="post" action="/api/dossiers/{{ d.id }}/annotate">
+{% if api_key_required %}<input type="password" name="api_key" placeholder="API key" required><br>{% endif %}
 <input name="contributor_code" placeholder="contributor code" required>
 <select name="exception_code">{% for code in d.tax_codes %}<option value="{{ code }}">{{ code }}</option>{% endfor %}</select><br>
 <input name="documents_compared" placeholder="documents compared" style="width:60%">

@@ -7,18 +7,67 @@ import csv
 import io
 import json
 import os
+import secrets
 import sqlite3
 from pathlib import Path
 
-from fastapi import FastAPI, Form, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request, Security
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.security import APIKeyHeader
 from fastapi.templating import Jinja2Templates
 
 ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = os.environ.get("ARGUS_DB", str(ROOT / "argus.db"))
 
+# API key auth. When ARGUS_API_KEY is unset the app runs in open demo mode
+# (writes + exports unauthenticated) and warns at startup. Set the env var in
+# production to gate all state-changing endpoints and data exports.
+API_KEY = os.environ.get("ARGUS_API_KEY", "")
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
 app = FastAPI(title="Argus — Trade Exception Corpus", version="0.1.0")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+
+
+@app.on_event("startup")
+def _auth_warning():
+    if not API_KEY:
+        print("WARNING: ARGUS_API_KEY is not set — write & export endpoints are OPEN (demo mode).")
+
+
+async def require_api_key(
+    request: Request,
+    header_key: str = Security(api_key_header),
+) -> bool:
+    """Gate write/export endpoints.
+
+    Accepts the key via the X-API-Key header, an `api_key` query parameter,
+    or an `api_key` form field (so plain HTML forms keep working). Open demo
+    mode when ARGUS_API_KEY is unset.
+    """
+    if not API_KEY:
+        return True
+    candidates = [header_key, request.query_params.get("api_key")]
+    if request.method in ("POST", "PUT", "PATCH"):
+        try:
+            form = await request.form()
+            candidates.append(form.get("api_key"))
+        except Exception:
+            pass
+    if any(c and secrets.compare_digest(str(c), API_KEY) for c in candidates if c):
+        return True
+    raise HTTPException(
+        status_code=401,
+        detail="Invalid or missing API key",
+        headers={"WWW-Authenticate": "ApiKey"},
+    )
+
+
+def _template_ctx(request: Request, **extra):
+    """Shared template context, incl. whether the UI must prompt for an API key."""
+    ctx = {"request": request, "footer": FOOTER, "api_key_required": bool(API_KEY)}
+    ctx.update(extra)
+    return ctx
 
 FOOTER = "Draft. Demo built on synthetic dossiers and public CBP rulings."
 
@@ -110,10 +159,9 @@ def dossiers_page(request: Request, code: str = "", status: str = ""):
                   SUM(CASE WHEN status='annotated' THEN 1 ELSE 0 END) AS awaiting
            FROM dossiers"""
     )
-    return templates.TemplateResponse("dossiers.html", {
-        "request": request, "dossiers": dossiers, "codes": codes,
-        "stats": stats, "footer": FOOTER, "q_code": code, "q_status": status,
-    })
+    return templates.TemplateResponse("dossiers.html", _template_ctx(
+        request, dossiers=dossiers, codes=codes, stats=stats,
+        q_code=code, q_status=status))
 
 
 @app.get("/dossiers/{dossier_id}", response_class=HTMLResponse)
@@ -121,17 +169,15 @@ def dossier_page(request: Request, dossier_id: int):
     d = dossier_detail(dossier_id)
     if not d:
         raise HTTPException(404, "dossier not found")
-    return templates.TemplateResponse("dossier_detail.html", {
-        "request": request, "d": d, "footer": FOOTER,
-        "stripped": STRIPPED_FIELDS, "kept": KEPT_FIELDS,
-    })
+    return templates.TemplateResponse("dossier_detail.html", _template_ctx(
+        request, d=d, stripped=STRIPPED_FIELDS, kept=KEPT_FIELDS))
 
 
 @app.get("/taxonomy", response_class=HTMLResponse)
 def taxonomy_page(request: Request):
     codes = rows("SELECT * FROM taxonomy_codes ORDER BY status, code")
     return templates.TemplateResponse("taxonomy.html",
-        {"request": request, "codes": codes, "footer": FOOTER})
+        _template_ctx(request, codes=codes))
 
 
 @app.get("/rulings", response_class=HTMLResponse)
@@ -147,17 +193,15 @@ def rulings_page(request: Request, q: str = ""):
     else:
         rulings = rows("SELECT * FROM cbp_rulings ORDER BY date DESC LIMIT 200")
     total = one("SELECT COUNT(*) AS n FROM cbp_rulings")["n"]
-    return templates.TemplateResponse("rulings.html", {
-        "request": request, "rulings": rulings, "total": total,
-        "footer": FOOTER, "q": q,
-    })
+    return templates.TemplateResponse("rulings.html", _template_ctx(
+        request, rulings=rulings, total=total, q=q))
 
 
 @app.get("/benchmarks", response_class=HTMLResponse)
 def benchmarks_page(request: Request):
     bms = rows("SELECT * FROM trade_benchmarks ORDER BY country, hs_code LIMIT 200")
     return templates.TemplateResponse("benchmarks.html",
-        {"request": request, "benchmarks": bms, "footer": FOOTER})
+        _template_ctx(request, benchmarks=bms))
 
 
 @app.get("/sold", response_class=HTMLResponse)
@@ -181,10 +225,8 @@ def sold_page(request: Request):
                WHERE v.annotation_id = ?""",
             (s["id"],),
         )
-    return templates.TemplateResponse("sold.html", {
-        "request": request, "footer": FOOTER,
-        "standard_n": standard_n, "verified_n": verified_n, "sample": sample,
-    })
+    return templates.TemplateResponse("sold.html", _template_ctx(
+        request, standard_n=standard_n, verified_n=verified_n, sample=sample))
 
 
 # ---------- JSON API ----------
@@ -204,6 +246,7 @@ def api_dossier(dossier_id: int):
 
 @app.post("/api/dossiers")
 def api_create_dossier(
+    _auth: bool = Depends(require_api_key),
     reference: str = Form(...), origin: str = Form(...), destination: str = Form(...),
     commodity: str = Form(""), hs_code: str = Form(""), incoterm: str = Form(""),
     shipment_date: str = Form(""), declared_value_usd: int = Form(0),
@@ -244,6 +287,7 @@ def _contributor_id(code: str) -> int:
 @app.post("/api/dossiers/{dossier_id}/annotate")
 def api_annotate(
     dossier_id: int,
+    _auth: bool = Depends(require_api_key),
     contributor_code: str = Form(...),
     exception_code: str = Form(...),
     documents_compared: str = Form(""),
@@ -275,6 +319,7 @@ def api_annotate(
 @app.post("/api/annotations/{annotation_id}/verify")
 def api_verify(
     annotation_id: int,
+    _auth: bool = Depends(require_api_key),
     verifier_code: str = Form(...),
     verdict: str = Form(...),
     notes: str = Form(""),
@@ -307,6 +352,7 @@ def api_verify(
 
 @app.post("/api/agreements/accept")
 def api_accept_agreement(
+    _auth: bool = Depends(require_api_key),
     contributor_code: str = Form(...),
     signer_name: str = Form(...),
     signer_firm: str = Form(...),
@@ -345,7 +391,7 @@ def api_benchmarks():
 # ---------- exports (filenames carry the synthetic label) ----------
 
 @app.get("/export/dossiers.csv")
-def export_csv():
+def export_csv(_auth: bool = Depends(require_api_key)):
     ds = rows("SELECT * FROM dossiers ORDER BY id")
     buf = io.StringIO()
     w = csv.writer(buf)
@@ -368,7 +414,7 @@ def _dossier_jsonl():
 
 
 @app.get("/export/dossiers.jsonl")
-def export_jsonl():
+def export_jsonl(_auth: bool = Depends(require_api_key)):
     return StreamingResponse(_dossier_jsonl(), media_type="application/x-ndjson",
         headers={"Content-Disposition": "attachment; filename=argus_dossiers_SYNTHETIC-DEMO-DATA.jsonl"})
 
@@ -379,6 +425,6 @@ def _rulings_jsonl():
 
 
 @app.get("/export/rulings.jsonl")
-def export_rulings_jsonl():
+def export_rulings_jsonl(_auth: bool = Depends(require_api_key)):
     return StreamingResponse(_rulings_jsonl(), media_type="application/x-ndjson",
         headers={"Content-Disposition": "attachment; filename=argus_cbp_rulings_PUBLIC-RECORDS.jsonl"})
