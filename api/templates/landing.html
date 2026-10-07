@@ -1,44 +1,164 @@
 {% extends "base.html" %}
 {% block title %}Trade Exception Corpus — we teach machines how trade experts think{% endblock %}
 {% block content %}
-<div style="text-align:center;padding:2.5rem 1rem 1.5rem">
-<h1 style="font-size:2.2rem;margin-bottom:.4rem">We teach machines how<br>trade experts think.</h1>
-<p style="font-size:1.1rem;color:#444;max-width:36rem;margin:0 auto">
-The Trade Exception Corpus for apparel exports — expert-reviewed decisions,
-evidence, and outcomes from real shipment workflows, structured for AI training.
-</p>
-<p style="margin-top:1.4rem">
-<a href="/redact"><button style="font-size:1.05rem;padding:.7rem 1.6rem">Contribute documents — redacted your way</button></a>
-</p>
-<p style="color:#666;font-size:.9rem">Upload a shipment PDF. See exactly what gets redacted.<br>Nothing is shared until you approve it, item by item.</p>
+<style>
+.lp-eyebrow{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:#6b6b6b;font-weight:700;margin:0 0 .8rem}
+.lp-hero{padding:3.2rem 0 2.4rem;max-width:44rem}
+.lp-hero h1{font-size:clamp(2.3rem,5.2vw,3.5rem);line-height:1.06;letter-spacing:-.02em;margin:0 0 1rem}
+.lp-hero p.lede{font-size:1.12rem;line-height:1.6;color:#3d3d3d;margin:0 0 1.6rem}
+.lp-cta-row{display:flex;gap:.8rem;flex-wrap:wrap;align-items:center}
+.btn-primary{display:inline-block;background:#1a1a1a;color:#fff !important;font-weight:700;padding:.8rem 1.7rem;border-radius:8px;text-decoration:none;font-size:1rem}
+.btn-primary:hover{background:#333}
+.btn-ghost{display:inline-block;background:#fff;color:#1a1a1a !important;font-weight:700;padding:.8rem 1.7rem;border-radius:8px;text-decoration:none;font-size:1rem;border:1.5px solid #1a1a1a;cursor:pointer}
+.btn-ghost:hover{background:#f0f0f0}
+.lp-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin:2.2rem 0}
+.lp-stat{background:#fff;border:1px solid #e2e2e2;border-radius:10px;padding:1.1rem;text-align:center}
+.lp-stat .n{font-size:1.7rem;font-weight:800}
+.lp-stat .l{font-size:.82rem;color:#666;margin-top:.2rem}
+.lp-section{padding:2.6rem 0;border-top:1px solid #e4e4e4}
+.lp-section h2{font-size:clamp(1.5rem,3vw,2.1rem);letter-spacing:-.01em;line-height:1.2;margin:0 0 1rem;max-width:34rem}
+.lp-section .standfirst{font-size:1.05rem;color:#3d3d3d;max-width:38rem;line-height:1.6}
+.lp-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.6rem}
+.lp-grid4{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-top:1.6rem}
+.lp-card{background:#fff;border:1px solid #e2e2e2;border-radius:10px;padding:1.3rem}
+.lp-card h3{margin:.1rem 0 .5rem;font-size:1.02rem}
+.lp-card p{margin:0;color:#4a4a4a;font-size:.93rem;line-height:1.55}
+.lp-band{background:#141414;color:#f5f5f5;border-radius:14px;padding:2.4rem;margin:2.6rem 0;text-align:center}
+.lp-band h2{color:#fff;margin:0 0 .7rem;font-size:clamp(1.5rem,3vw,2rem)}
+.lp-band p{color:#c9c9c9;max-width:32rem;margin:0 auto 1.4rem;line-height:1.6}
+.lp-band .btn-ghost{background:transparent;color:#fff !important;border-color:#fff}
+.lp-band .btn-ghost:hover{background:#222}
+.lp-fine{color:#777;font-size:.85rem}
+#expertModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;align-items:center;justify-content:center;padding:1rem}
+#expertModal .sheet{background:#fff;border-radius:12px;max-width:30rem;width:100%;max-height:88vh;overflow:auto;padding:1.8rem;position:relative}
+#expertModal .x{position:absolute;top:.9rem;right:1rem;background:none;border:none;font-size:1.4rem;cursor:pointer;color:#555;padding:.2rem .5rem}
+#expertModal label{display:block;font-size:.85rem;font-weight:600;margin:.7rem 0 .2rem}
+#expertModal input{width:100%;box-sizing:border-box;padding:.55rem;border:1px solid #ccc;border-radius:6px;font-size:.95rem}
+#expertModal .err{color:#a00;font-size:.85rem;display:none;margin-top:.5rem}
+@media(max-width:640px){.lp-stats{grid-template-columns:repeat(2,1fr)}.lp-grid3,.lp-grid4{grid-template-columns:1fr}}
+</style>
+
+<div class="lp-hero">
+<p class="lp-eyebrow">Trade Exception Corpus · Apparel Exports</p>
+<h1>We teach machines how trade experts think.</h1>
+<p class="lede">Every shipment generates decisions — what was wrong, what it cost, what the expert did about it.
+That judgment has never been captured. We structure it into training data for the AI that runs global trade.</p>
+<div class="lp-cta-row">
+<a class="btn-primary" href="/redact">Contribute documents</a>
+<button class="btn-ghost" data-open-expert>I'm a trade expert</button>
+</div>
+<p class="lp-fine" style="margin-top:1rem">Uploads are redacted your way — you approve every redaction before anything is shared.</p>
 </div>
 
-<div class="panel" style="grid-template-columns:repeat(4,1fr);text-align:center">
-<div class="card"><h2 style="margin:.2rem">{{ stats.n }}</h2><p>dossiers</p></div>
-<div class="card"><h2 style="margin:.2rem">{{ stats.verified }}</h2><p>verified</p></div>
-<div class="card"><h2 style="margin:.2rem">{{ rulings }}</h2><p>public CBP rulings</p></div>
-<div class="card"><h2 style="margin:.2rem">{{ codes }}</h2><p>exception types</p></div>
+<div class="lp-stats">
+<div class="lp-stat"><div class="n">{{ stats.n }}</div><div class="l">dossiers</div></div>
+<div class="lp-stat"><div class="n">{{ stats.verified }}</div><div class="l">verified</div></div>
+<div class="lp-stat"><div class="n">{{ rulings }}</div><div class="l">public CBP rulings</div></div>
+<div class="lp-stat"><div class="n">{{ codes }}</div><div class="l">exception types</div></div>
 </div>
 
-<div class="card">
-<h3>How contributing works</h3>
-<ol class="timeline">
-<li><strong>Upload</strong> — a commercial invoice, bill of lading, or packing list. List any names that must never appear.</li>
-<li><strong>Review</strong> — side-by-side: your original next to the proposed redaction, every detected item boxed and listed.</li>
-<li><strong>Approve</strong> — uncheck anything to restore it, then confirm. Approved items are permanently removed from the document — not covered up — and you get an audit log.</li>
-</ol>
-<p>Names, addresses, contacts, B/L and container numbers never enter the corpus.
+<div class="lp-section">
+<p class="lp-eyebrow">The problem</p>
+<h2>Models can read trade documents. They can't make trade decisions.</h2>
+<p class="standfirst">A commercial invoice is just paper until someone who has cleared ten thousand shipments looks at it
+and says: this value is wrong, this HS code will get held at the port, this LC term doesn't match. That reasoning —
+the decisions, the tradeoffs, the context — lives inside experts. It was never written down as data.</p>
+<div class="lp-grid3">
+<div class="lp-card"><h3>Documents are everywhere</h3><p>Invoices, packing lists, bills of lading, LCs — the paper trail of every shipment already exists.</p></div>
+<div class="lp-card"><h3>Judgment is nowhere</h3><p>What the expert noticed, decided, and why is locked in people's heads. Models trained on documents alone plateau.</p></div>
+<div class="lp-card"><h3>Errors are expensive</h3><p>Misclassification, valuation disputes, and LC discrepancies cost real money on every single lane.</p></div>
+</div>
+</div>
+
+<div class="lp-section">
+<p class="lp-eyebrow">Our solution</p>
+<h2>We turn real shipment work into training data.</h2>
+<p class="standfirst">Practitioners annotate real exceptions against a fixed taxonomy. A different practitioner cross-verifies.
+Every record carries the decision, the evidence, the reasoning, and the outcome — structured for training.</p>
+<div class="lp-grid4">
+<div class="lp-card"><h3>Supervised fine-tuning</h3><p>Prompt–response pairs and reasoning traces from real exception cases — teaching models how experts handle each discrepancy.</p></div>
+<div class="lp-card"><h3>Reinforcement learning + rubrics</h3><p>Expert-designed grading frameworks that turn trade judgment into reward signals for reasoning models.</p></div>
+<div class="lp-card"><h3>Agent trajectories</h3><p>Step-by-step decision sequences across the document set — how an expert works a case from flag to resolution.</p></div>
+<div class="lp-card"><h3>Evaluation suites</h3><p>Verified exception sets that score whether a trade AI actually makes the right call, not just a plausible one.</p></div>
+</div>
+</div>
+
+<div class="lp-section">
+<p class="lp-eyebrow">Contributing</p>
+<h2>Your documents. Your redaction. Your call.</h2>
+<div class="lp-grid3">
+<div class="lp-card"><h3>1 · Upload</h3><p>A commercial invoice, bill of lading, or packing list. Name any company or client that must never appear.</p></div>
+<div class="lp-card"><h3>2 · Review</h3><p>Side-by-side: your original next to the proposed redaction. Every detected item boxed, listed, and toggleable.</p></div>
+<div class="lp-card"><h3>3 · Approve</h3><p>Uncheck anything to restore it, then confirm. Approved items are permanently removed — not covered up — with an audit log.</p></div>
+</div>
+<p class="lp-fine" style="margin-top:1.2rem">Names, addresses, contacts, B/L and container numbers never enter the corpus.
 Prices, quantities, weights, and charges stay — they're the signal.</p>
 </div>
 
-<div class="card">
-<h3>Explore the corpus</h3>
-<p>
-<a href="/dossiers">Dossiers</a> ·
-<a href="/taxonomy">Exception taxonomy</a> ·
-<a href="/rulings">CBP rulings</a>
-</p>
-<p><span class="badge synth">SYNTHETIC DEMO DATA</span>
-<span style="color:#666;font-size:.85rem">Demo database is synthetic and clearly labeled; rulings are U.S. public records.</span></p>
+<div class="lp-band">
+<h2>Your judgment is the dataset.</h2>
+<p>We're recruiting freight forwarders, customs brokers, and trade practitioners to annotate and verify.
+If you've cleared shipments for a living, your expertise is exactly what frontier AI is missing.</p>
+<button class="btn-ghost" data-open-expert>Become an expert contributor</button>
 </div>
+
+<div class="lp-section">
+<p class="lp-eyebrow">Explore</p>
+<p><a href="/dossiers">Dossiers</a> · <a href="/taxonomy">Exception taxonomy</a> · <a href="/rulings">CBP rulings</a> · <a href="/redact">Contribute</a></p>
+<p><span class="badge synth">SYNTHETIC DEMO DATA</span>
+<span class="lp-fine">Demo database is synthetic and clearly labeled; rulings are U.S. public records.</span></p>
+</div>
+
+<div id="expertModal" role="dialog" aria-modal="true" aria-label="Expert contributor signup">
+<div class="sheet">
+<button class="x" data-close-expert aria-label="Close">×</button>
+<div id="expertFormWrap">
+<h2 style="margin-top:0">Join as an expert</h2>
+<p style="color:#444">Looking to contribute or be considered as an expert? Fill in details and a team member will be in touch.</p>
+<form id="expertForm">
+<label>First name<br><input type="text" name="first_name" required autocomplete="given-name"></label>
+<label>Last name<br><input type="text" name="last_name" required autocomplete="family-name"></label>
+<label>Company name<br><input type="text" name="company" required autocomplete="organization"></label>
+<label>Phone number<br><input type="tel" name="phone" required autocomplete="tel"></label>
+<label>Email address<br><input type="email" name="email" required autocomplete="email"></label>
+<p class="err" id="expertErr">Please fill in all fields with a valid email.</p>
+<button type="submit" style="margin-top:1rem;width:100%">Request a call back</button>
+</form>
+</div>
+<div id="expertDone" style="display:none;text-align:center;padding:1rem 0">
+<h2>You're on the list.</h2>
+<p style="color:#444">Thanks — a team member will be in touch shortly.</p>
+<button class="btn-ghost" data-close-expert>Close</button>
+</div>
+</div>
+</div>
+<script>
+(function(){
+  var modal = document.getElementById('expertModal');
+  var form = document.getElementById('expertForm');
+  var err = document.getElementById('expertErr');
+  function open(){ modal.style.display='flex'; var i=form.querySelector('input'); if(i) i.focus(); }
+  function close(){ modal.style.display='none'; }
+  document.querySelectorAll('[data-open-expert]').forEach(function(b){ b.addEventListener('click', open); });
+  document.querySelectorAll('[data-close-expert]').forEach(function(b){ b.addEventListener('click', close); });
+  modal.addEventListener('click', function(e){ if(e.target===modal) close(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') close(); });
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    err.style.display='none';
+    var fd = new FormData(form);
+    var email = (fd.get('email')||'').toString();
+    var ok = true;
+    fd.forEach(function(v){ if(!v.toString().trim()) ok=false; });
+    if(!ok || email.indexOf('@')<0){ err.style.display='block'; return; }
+    fetch('/api/expert-leads', {method:'POST', body:fd})
+      .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+      .then(function(){
+        document.getElementById('expertFormWrap').style.display='none';
+        document.getElementById('expertDone').style.display='block';
+      })
+      .catch(function(){ err.textContent='Something went wrong — please try again.'; err.style.display='block'; });
+  });
+})();
+</script>
 {% endblock %}

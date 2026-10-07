@@ -497,6 +497,32 @@ def redact_download(job_id: str, name: str, _auth: bool = Depends(require_api_ke
     return FileResponse(p, filename=f"argus_{job_id}_{name}")
 
 
+@app.post("/api/expert-leads")
+def api_expert_lead(
+    _auth: bool = Depends(require_api_key),
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    company: str = Form(...),
+    phone: str = Form(...),
+    email: str = Form(...),
+):
+    if not all([first_name.strip(), last_name.strip(), company.strip(),
+                phone.strip(), email.strip()]) or "@" not in email:
+        raise HTTPException(400, "all fields are required and email must be valid")
+    con = db()
+    try:
+        cur = con.execute(
+            """INSERT INTO expert_leads (first_name, last_name, company, phone, email)
+               VALUES (?,?,?,?,?)""",
+            (first_name.strip(), last_name.strip(), company.strip(),
+             phone.strip(), email.strip()),
+        )
+        con.commit()
+        return {"ok": True, "lead_id": cur.lastrowid}
+    finally:
+        con.close()
+
+
 # ---------- exports (filenames carry the synthetic label) ----------
 
 @app.get("/export/dossiers.csv")

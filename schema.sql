@@ -124,3 +124,14 @@ INSERT OR IGNORE INTO taxonomy_codes (code, name, definition, documents_compared
 ('INSURANCE_GAP', 'Insurance gap', 'Insured value does not cover declared value.', 'insurance_certificate, commercial_invoice', 'active'),
 ('LC_TERM_DISCREPANCY', 'LC term discrepancy', 'Letter of credit terms conflict with presented documents.', 'letter_of_credit, all_documents', 'proposed'),
 ('FREIGHT_SURCHARGE_VARIANCE', 'Freight surcharge variance', 'Freight charges differ from agreed or quoted rates.', 'bill_of_lading, freight_quotation', 'proposed');
+
+CREATE TABLE IF NOT EXISTS expert_leads (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    first_name TEXT NOT NULL,
+    last_name  TEXT NOT NULL,
+    company    TEXT NOT NULL,
+    phone      TEXT NOT NULL,
+    email      TEXT NOT NULL,
+    source     TEXT NOT NULL DEFAULT 'landing',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
