@@ -410,7 +410,11 @@ def redact_upload_page(request: Request):
 async def redact_upload(
     request: Request,
     _auth: bool = Depends(require_api_key),
-    contributor_code: str = Form(""),
+    first_name: str = Form(""),
+    last_name: str = Form(""),
+    company_name: str = Form(""),
+    email: str = Form(""),
+    phone: str = Form(""),
     extra_terms: str = Form(""),
     terms_accepted: str = Form(""),
     terms_version: str = Form(""),
@@ -429,7 +433,13 @@ async def redact_upload(
     from datetime import datetime, timezone
     (jobdir / "consent.json").write_text(json.dumps({
         "job_id": job_id,
-        "contributor_code": contributor_code,
+        "contributor": {
+            "first_name": first_name,
+            "last_name": last_name,
+            "company_name": company_name,
+            "email": email,
+            "phone": phone,
+        },
         "terms_title": TERMS_TITLE,
         "terms_version": TERMS_VERSION,
         "terms_sha256": terms_sha256(),
@@ -444,7 +454,9 @@ async def redact_upload(
     (jobdir / "findings.json").write_text(
         json.dumps([_finding_to_dict(f) for f in findings], indent=2))
     (jobdir / "meta.json").write_text(json.dumps({
-        "filename": file.filename, "contributor_code": contributor_code,
+        "filename": file.filename,
+        "contributor": {"first_name": first_name, "last_name": last_name,
+                        "company_name": company_name, "email": email, "phone": phone},
         "extra_terms": terms}))
     return RedirectResponse(f"/redact/review/{job_id}", status_code=303)
 
@@ -479,9 +491,13 @@ async def redact_confirm(request: Request, job_id: str,
     meta = json.loads((jobdir / "meta.json").read_text())
     consent_path = jobdir / "consent.json"
     terms_v = json.loads(consent_path.read_text()).get("terms_version") if consent_path.is_file() else None
+    _contrib = meta.get("contributor", {}) or {}
+    _who = " ".join(p for p in (_contrib.get("first_name", ""), _contrib.get("last_name", "")) if p).strip()
+    if _contrib.get("company_name"):
+        _who = f"{_who} ({_contrib['company_name']})".strip()
     audit = audit_log(job_id=job_id, filename=meta["filename"], original=original,
                       redacted=redacted, findings=findings,
-                      contributor_code=meta.get("contributor_code", ""),
+                      contributor_code=_who,
                       terms_version=terms_v)
     (jobdir / "audit.json").write_text(json.dumps(audit, indent=2))
     return templates.TemplateResponse(request, "redact_done.html", _template_ctx(request, job_id=job_id, audit=audit))

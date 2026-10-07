@@ -18,7 +18,11 @@ until you confirm.</p>
 
 <div class="card">
 <form id="uploadForm" action="/redact/upload" method="post" enctype="multipart/form-data">
-<label>Contributor code<br><input type="text" name="contributor_code" placeholder="e.g. FWD-014" required style="width:16rem"></label><br><br>
+<label>First name<br><input type="text" name="first_name" required style="width:16rem"></label><br><br>
+<label>Last name<br><input type="text" name="last_name" required style="width:16rem"></label><br><br>
+<label>Company name<br><input type="text" name="company_name" required style="width:16rem"></label><br><br>
+<label>Email address<br><input type="email" name="email" required style="width:16rem"></label><br><br>
+<label>Phone number<br><input type="tel" name="phone" required style="width:16rem"></label><br><br>
 <label>Names that must never appear (one per line) — your company, key clients<br>
 <textarea name="extra_terms" rows="3" cols="48" placeholder="Acme Freight Ltd&#10;Globex Apparel Inc"></textarea></label><br><br>
 <label>Document (PDF)<br><input type="file" name="file" accept="application/pdf" required></label><br><br>
