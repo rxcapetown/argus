@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Batch review{% endblock %}
+{% block content %}
+<h1>Batch review <span class="tag">{{ batch.batch_id[:8] }}</span></h1>
+<p style="color:#444">Contributor code <strong>{{ batch.contributor_code }}</strong>
+{% if ship %} · shipment <a href="/shipments/{{ ship.id }}"><strong>{{ ship.shipment_ref }}</strong></a>{% endif %}</p>
+
+{% set remaining = batch.jobs | selectattr("done", "equalto", false) | list %}
+{% if remaining %}
+<div class="card" style="border:2px solid #1a1a1a">
+<form method="post" action="/redact/batch/{{ batch.batch_id }}/approve">
+<input type="hidden" name="job_id" value="all">
+<input type="hidden" name="scope" value="all">
+<button type="submit" style="font-size:1.05rem">Approve all remaining ({{ remaining|length }}) — one click per document, ~10 seconds each</button>
+</form>
+<p style="color:#666;font-size:.85rem;margin-bottom:0">Approves every detected item in each document and slots it into the
+shipment workspace using the detected document type. Use the per-document Review link below for item-by-item control.</p>
+</div>
+{% endif %}
+
+{% for j in batch.jobs %}
+<div class="card">
+<p style="margin-top:0"><strong>{{ j.filename }}</strong>
+{% if j.done %}<span class="badge verified">done ✓</span>{% endif %}</p>
+<p style="color:#555;font-size:.9rem">{{ j.n_findings }} findings detected</p>
+{% if not j.done %}
+<form method="post" action="/redact/batch/{{ batch.batch_id }}/approve" style="display:flex;gap:.6rem;align-items:end;flex-wrap:wrap">
+<input type="hidden" name="job_id" value="{{ j.job_id }}">
+<input type="hidden" name="scope" value="one">
+<label>Document type<br>
+<select name="doc_type">
+{% for t, label in doc_types %}
+<option value="{{ t }}"{% if t == j.doc_guess %} selected{% endif %}>{{ label }}{% if t == j.doc_guess %} (detected){% endif %}</option>
+{% endfor %}
+</select></label>
+<button type="submit">Approve →</button>
+<a href="/redact/review/{{ j.job_id }}">Review item-by-item</a>
+</form>
+{% else %}
+<p style="margin-bottom:0"><a href="/redact/download/{{ j.job_id }}/redacted.pdf">redacted PDF</a> ·
+<a href="/redact/download/{{ j.job_id }}/audit.json">audit log</a></p>
+{% endif %}
+</div>
+{% endfor %}
+
+{% if not remaining %}
+<div class="card" style="border:2px solid #1a1a1a">
+<h3 style="margin-top:0">Batch complete</h3>
+{% if ship %}
+<p style="margin-bottom:0"><a href="/shipments/{{ ship.id }}"><strong>Open the shipment workspace →</strong></a></p>
+{% else %}
+<p style="margin-bottom:0"><a href="/shipments?code={{ batch.contributor_code }}"><strong>View my shipment workspaces →</strong></a></p>
+{% endif %}
+</div>
+{% endif %}
+{% endblock %}

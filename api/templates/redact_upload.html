@@ -19,6 +19,12 @@ becomes a structured dossier instead of loose files.</p>
 </div>
 
 <div class="card">
+<div style="background:#f4f4f4;border-radius:8px;padding:.8rem 1rem;margin-bottom:1rem">
+<strong>Returning contributor?</strong> Enter your code to prefill your details.<br>
+<input type="text" id="ccode" placeholder="e.g. 100001" style="width:10rem;margin-top:.4rem">
+<button type="button" id="ccodeBtn">Look up</button>
+<span id="ccodeMsg" style="font-size:.85rem;color:#555"></span>
+</div>
 <form id="uploadForm" action="/redact/upload" method="post" enctype="multipart/form-data">
 <label>First name<br><input type="text" name="first_name" required style="width:16rem"></label><br><br>
 <label>Last name<br><input type="text" name="last_name" required style="width:16rem"></label><br><br>
@@ -27,13 +33,32 @@ becomes a structured dossier instead of loose files.</p>
 <label>Phone number<br><input type="tel" name="phone" required style="width:16rem"></label><br><br>
 <label>Names that must never appear (one per line) — your company, key clients<br>
 <textarea name="extra_terms" rows="3" cols="48" placeholder="Acme Freight Ltd&#10;Globex Apparel Inc"></textarea></label><br><br>
-<label>Document (PDF)<br><input type="file" name="file" accept="application/pdf" required></label><br><br>
+<label>Shipment reference <span style="color:#666;font-weight:400">(optional — leave blank for a new shipment per batch)</span><br>
+<input type="text" name="shipment_ref" placeholder="e.g. SHP-2026-1184" style="width:16rem"></label><br><br>
+<label>Documents (PDF — select one or many)<br><input type="file" name="files" accept="application/pdf" multiple required></label><br><br>
 {% if api_key_required %}<input type="password" name="api_key" placeholder="API key" required><br><br>{% endif %}
 <input type="hidden" name="terms_accepted" id="termsAccepted" value="">
 <input type="hidden" name="terms_version" value="{{ terms_version }}">
 <button type="submit">Upload &amp; detect sensitive info</button>
 </form>
 </div>
+<script>
+document.getElementById('ccodeBtn').addEventListener('click', async function(){
+  var c = document.getElementById('ccode').value.trim();
+  var m = document.getElementById('ccodeMsg');
+  if (!c) { m.textContent = 'enter your code first'; return; }
+  m.textContent = 'looking up…';
+  try {
+    var r = await fetch('/api/contributor/' + encodeURIComponent(c));
+    if (!r.ok) { m.textContent = 'code not found'; return; }
+    var p = await r.json();
+    var set = function(n, v){ var el = document.querySelector('[name="'+n+'"]'); if (el && v) el.value = v; };
+    set('first_name', p.first_name); set('last_name', p.last_name);
+    set('company_name', p.company_name); set('email', p.email); set('phone', p.phone);
+    m.textContent = 'details loaded ✓';
+  } catch(e) { m.textContent = 'lookup failed'; }
+});
+</script>
 <p style="color:#666;font-size:.85rem">Redaction is true redaction: approved items are removed from the PDF content
 stream, not covered with boxes. An audit log records <em>what kinds</em> of items were
 removed and how many — never their values.</p>

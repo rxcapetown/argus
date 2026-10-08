@@ -11,6 +11,7 @@ import re
 import secrets
 import sqlite3
 from pathlib import Path
+from typing import List
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, Security, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
@@ -388,6 +389,9 @@ def api_benchmarks():
 REDACT_DIR = ROOT / "data" / "redact_jobs"
 REDACT_DIR.mkdir(parents=True, exist_ok=True)
 
+REDACT_BATCH_DIR = ROOT / "data" / "redact_batches"
+REDACT_BATCH_DIR.mkdir(parents=True, exist_ok=True)
+
 # Contributor code registry: unique NUMERICAL code per contributing company.
 # Anchored next to the DB file so it lives on the persistent volume in
 # production (same place ARGUS_DB points); also mirrored into the
@@ -478,6 +482,67 @@ def _job_dir(job_id: str) -> "Path":
     return p
 
 
+def _get_or_create_shipment(ref: str, code: str) -> int:
+    """Return the shipment id for (ref, code), creating it if needed."""
+    con = db()
+    try:
+        ref = (ref or "").strip()
+        if ref:
+            r = con.execute(
+                "SELECT id FROM shipments WHERE shipment_ref = ? AND contributor_code = ?",
+                (ref, code)).fetchone()
+            if r:
+                return r[0]
+        else:
+            ref = f"SHP-{secrets.token_hex(3).upper()}"
+        cur = con.execute(
+            "INSERT INTO shipments (shipment_ref, contributor_code) VALUES (?, ?)",
+            (ref, code))
+        con.commit()
+        return cur.lastrowid
+    finally:
+        con.close()
+
+
+def _attach_to_shipment(shipment_id: int, job_id: str, doc_type: str, filename: str) -> None:
+    """Attach a finalized job to a shipment and flip status to ready at 6+ slots."""
+    valid_types = {t for t, _ in DOC_TYPES}
+    if doc_type not in valid_types:
+        raise HTTPException(400, "unknown document type")
+    con = db()
+    try:
+        con.execute(
+            """INSERT OR IGNORE INTO shipment_documents
+               (shipment_id, job_id, doc_type, filename) VALUES (?,?,?,?)""",
+            (shipment_id, job_id, doc_type, filename))
+        n = con.execute(
+            "SELECT COUNT(DISTINCT doc_type) FROM shipment_documents WHERE shipment_id = ?",
+            (shipment_id,)).fetchone()[0]
+        if n >= 6:
+            con.execute("UPDATE shipments SET status = 'ready' WHERE id = ?", (shipment_id,))
+        con.commit()
+    finally:
+        con.close()
+
+
+@app.get("/api/contributor/{code}")
+def api_contributor(code: str):
+    """Returning-contributor lookup: prefill the upload form from a code."""
+    for v in _registry_load().values():
+        if str(v.get("code")) == str(code):
+            contact = (v.get("contact") or "").strip()
+            first, _, last = contact.partition(" ")
+            return {
+                "code": v.get("code"),
+                "company_name": v.get("company_name", ""),
+                "email": v.get("email", ""),
+                "first_name": first,
+                "last_name": last,
+                "phone": v.get("phone", ""),
+            }
+    raise HTTPException(404, "unknown contributor code")
+
+
 @app.get("/redact", response_class=HTMLResponse)
 def redact_upload_page(request: Request):
     return templates.TemplateResponse(request, "redact_upload.html", _template_ctx(request, stripped=STRIPPED_FIELDS, kept=KEPT_FIELDS,
@@ -497,52 +562,137 @@ async def redact_upload(
     extra_terms: str = Form(""),
     terms_accepted: str = Form(""),
     terms_version: str = Form(""),
-    file: UploadFile = File(...),
+    shipment_ref: str = Form(""),
+    files: List[UploadFile] = File(...),
 ):
     if terms_accepted != "1" or terms_version != TERMS_VERSION:
         raise HTTPException(400, "terms must be accepted before uploading")
-    data = await file.read()
-    if not data.startswith(b"%PDF"):
-        raise HTTPException(400, "only PDF uploads are supported in this version")
-    job_id = secrets.token_hex(8)
-    jobdir = REDACT_DIR / job_id
-    jobdir.mkdir(parents=True)
-    (jobdir / "original.pdf").write_bytes(data)
-    # Unique numerical contributor code per company — the revenue-share key.
+    pdfs = [f for f in (files or []) if f.filename]
+    if not pdfs:
+        raise HTTPException(400, "no files uploaded")
+    if len(pdfs) > 20:
+        raise HTTPException(400, "max 20 files per batch")
+    for f in pdfs:
+        data = await f.read()
+        if not data.startswith(b"%PDF"):
+            raise HTTPException(400, f"only PDF uploads are supported: {f.filename}")
+        f._data = data  # stash so we don't re-read below
+    # Unique numerical contributor code per company — minted once per batch.
     contributor_code = mint_contributor_code(
         company_name, email, first_name, last_name, phone)
     # Consent trail: what was accepted, when, by whom — never the doc values.
     from datetime import datetime, timezone
-    (jobdir / "consent.json").write_text(json.dumps({
-        "job_id": job_id,
-        "contributor_code": contributor_code,
-        "contributor": {
-            "first_name": first_name,
-            "last_name": last_name,
-            "company_name": company_name,
-            "email": email,
-            "phone": phone,
-        },
-        "terms_title": TERMS_TITLE,
-        "terms_version": TERMS_VERSION,
-        "terms_sha256": terms_sha256(),
-        "accepted_at": datetime.now(timezone.utc).isoformat(),
-        "user_agent": request.headers.get("user-agent", ""),
-        "client": request.client.host if request.client else "",
-    }, indent=2))
+    accepted_at = datetime.now(timezone.utc).isoformat()
+    user_agent = request.headers.get("user-agent", "")
+    client = request.client.host if request.client else ""
     terms = [t.strip() for t in extra_terms.replace(",", "\n").splitlines() if t.strip()]
-    doc = pymupdf.open(stream=data, filetype="pdf")
-    findings = detect_entities(doc, extra_terms=terms)
-    doc.close()
-    (jobdir / "findings.json").write_text(
-        json.dumps([_finding_to_dict(f) for f in findings], indent=2))
-    (jobdir / "meta.json").write_text(json.dumps({
-        "filename": file.filename,
+    contributor = {"first_name": first_name, "last_name": last_name,
+                   "company_name": company_name, "email": email, "phone": phone}
+    jobs = []
+    for f in pdfs:
+        data = f._data
+        job_id = secrets.token_hex(8)
+        jobdir = REDACT_DIR / job_id
+        jobdir.mkdir(parents=True)
+        (jobdir / "original.pdf").write_bytes(data)
+        (jobdir / "consent.json").write_text(json.dumps({
+            "job_id": job_id,
+            "contributor_code": contributor_code,
+            "contributor": contributor,
+            "terms_title": TERMS_TITLE,
+            "terms_version": TERMS_VERSION,
+            "terms_sha256": terms_sha256(),
+            "accepted_at": accepted_at,
+            "user_agent": user_agent,
+            "client": client,
+        }, indent=2))
+        doc = pymupdf.open(stream=data, filetype="pdf")
+        findings = detect_entities(doc, extra_terms=terms)
+        doc.close()
+        (jobdir / "findings.json").write_text(
+            json.dumps([_finding_to_dict(x) for x in findings], indent=2))
+        try:
+            doc_guess, doc_conf = classify_document(extract_text(data))
+        except Exception:
+            doc_guess, doc_conf = "commercial_invoice", 0.0
+        (jobdir / "meta.json").write_text(json.dumps({
+            "filename": f.filename,
+            "contributor_code": contributor_code,
+            "contributor": contributor,
+            "extra_terms": terms,
+            "doc_type_guess": doc_guess,
+            "doc_type_confidence": doc_conf}))
+        jobs.append({"job_id": job_id, "filename": f.filename,
+                     "n_findings": len(findings),
+                     "doc_guess": doc_guess, "doc_conf": doc_conf})
+    # One shipment per batch (created now, or joined by reference).
+    shipment_id = None
+    if (shipment_ref or "").strip() or len(jobs) > 1:
+        shipment_id = _get_or_create_shipment(shipment_ref, contributor_code)
+    if len(jobs) == 1 and shipment_id is None:
+        # single careful upload — keep the classic review flow unchanged
+        return RedirectResponse(f"/redact/review/{jobs[0]['job_id']}", status_code=303)
+    batch_id = secrets.token_hex(8)
+    batchdir = REDACT_BATCH_DIR / batch_id
+    batchdir.mkdir(parents=True)
+    (batchdir / "batch.json").write_text(json.dumps({
+        "batch_id": batch_id,
         "contributor_code": contributor_code,
-        "contributor": {"first_name": first_name, "last_name": last_name,
-                        "company_name": company_name, "email": email, "phone": phone},
-        "extra_terms": terms}))
-    return RedirectResponse(f"/redact/review/{job_id}", status_code=303)
+        "shipment_id": shipment_id,
+        "created_at": accepted_at,
+        "jobs": jobs,
+    }, indent=2))
+    return RedirectResponse(f"/redact/batch/{batch_id}", status_code=303)
+
+
+def _batch_or_404(batch_id: str) -> dict:
+    p = REDACT_BATCH_DIR / batch_id / "batch.json"
+    if not p.is_file():
+        raise HTTPException(404, "batch not found")
+    return json.loads(p.read_text())
+
+
+@app.get("/redact/batch/{batch_id}", response_class=HTMLResponse)
+def redact_batch_page(request: Request, batch_id: str):
+    b = _batch_or_404(batch_id)
+    for j in b["jobs"]:
+        j["done"] = (REDACT_DIR / j["job_id"] / "audit.json").is_file()
+    ship = None
+    if b.get("shipment_id"):
+        ship = one("SELECT * FROM shipments WHERE id = ?", (b["shipment_id"],))
+    return templates.TemplateResponse(request, "redact_batch.html", _template_ctx(
+        request, batch=b, ship=ship, doc_types=DOC_TYPES))
+
+
+@app.post("/redact/batch/{batch_id}/approve")
+def redact_batch_approve(batch_id: str,
+                         _auth: bool = Depends(require_api_key),
+                         job_id: str = Form(...),
+                         doc_type: str = Form(""),
+                         scope: str = Form("one")):
+    b = _batch_or_404(batch_id)
+    valid_types = {t for t, _ in DOC_TYPES}
+    targets = []
+    for j in b["jobs"]:
+        if (REDACT_DIR / j["job_id"] / "audit.json").is_file():
+            continue  # already finalized
+        if scope == "all" or j["job_id"] == job_id:
+            dtype = j.get("doc_guess") or "commercial_invoice"
+            if scope == "one" and j["job_id"] == job_id and doc_type:
+                dtype = doc_type
+            if dtype not in valid_types:
+                raise HTTPException(400, "unknown document type")
+            targets.append((j, dtype))
+    if not targets:
+        raise HTTPException(400, "nothing to approve")
+    shipment_id = b.get("shipment_id")
+    for j, dtype in targets:
+        findings = [_finding_from_dict(d) for d in json.loads(
+            (REDACT_DIR / j["job_id"] / "findings.json").read_text())]
+        _finalize_job(j["job_id"], {f.id for f in findings})  # approve all
+        if shipment_id:
+            _attach_to_shipment(shipment_id, j["job_id"], dtype, j.get("filename", ""))
+    return RedirectResponse(f"/redact/batch/{batch_id}", status_code=303)
 
 
 @app.get("/redact/review/{job_id}", response_class=HTMLResponse)
@@ -557,16 +707,17 @@ def redact_review_page(request: Request, job_id: str):
     return templates.TemplateResponse(request, "redact_review.html", _template_ctx(request, job_id=job_id, pages=pages, findings=findings))
 
 
-@app.post("/redact/confirm/{job_id}", response_class=HTMLResponse)
-async def redact_confirm(request: Request, job_id: str,
-                         _auth: bool = Depends(require_api_key)):
+def _finalize_job(job_id: str, keep_ids: set) -> dict:
+    """Apply redaction for the selected findings; write redacted.pdf + audit.json.
+
+    Returns the audit dict. The audit carries the numerical contributor_code
+    (revenue-share key) plus a human-readable contributor_display.
+    """
     jobdir = _job_dir(job_id)
-    form = await request.form()
-    keep = set(form.getlist("keep"))
     findings = [_finding_from_dict(d)
                 for d in json.loads((jobdir / "findings.json").read_text())]
     for f in findings:
-        f.selected = f.id in keep
+        f.selected = f.id in keep_ids
     (jobdir / "findings.json").write_text(
         json.dumps([_finding_to_dict(f) for f in findings], indent=2))
     original = (jobdir / "original.pdf").read_bytes()
@@ -585,6 +736,18 @@ async def redact_confirm(request: Request, job_id: str,
                       terms_version=terms_v)
     audit["contributor_display"] = _who
     (jobdir / "audit.json").write_text(json.dumps(audit, indent=2))
+    return audit
+
+
+@app.post("/redact/confirm/{job_id}", response_class=HTMLResponse)
+async def redact_confirm(request: Request, job_id: str,
+                         _auth: bool = Depends(require_api_key)):
+    jobdir = _job_dir(job_id)
+    form = await request.form()
+    keep = set(form.getlist("keep"))
+    audit = _finalize_job(job_id, keep)
+    original = (jobdir / "original.pdf").read_bytes()
+    meta = json.loads((jobdir / "meta.json").read_text())
     # Document-type guess for the shipment workspace: uploads land in the
     # right dossier slot no matter what order they arrive in.
     try:
