@@ -551,10 +551,14 @@ def _notify_lead_email(lead_id: int, lead: dict) -> None:
     """
     api_key = os.environ.get("RESEND_API_KEY", "")
     to = os.environ.get("LEAD_NOTIFY_EMAIL", "")
+    import sys
+    print(f"[expert-lead] notify: lead_id={lead_id} env_present={bool(api_key and to)}",
+          file=sys.stderr, flush=True)
     if not api_key or not to:
         return
     try:
         import urllib.request
+        import urllib.error
         body = json.dumps({
             "from": os.environ.get("LEAD_NOTIFY_FROM", "onboarding@resend.dev"),
             "to": [to],
@@ -572,8 +576,13 @@ def _notify_lead_email(lead_id: int, lead: dict) -> None:
                      "Content-Type": "application/json"},
             method="POST")
         urllib.request.urlopen(req, timeout=10).read()
-    except Exception:
-        pass
+        print(f"[expert-lead] notify: lead_id={lead_id} resend_ok", file=sys.stderr, flush=True)
+    except urllib.error.HTTPError as e:
+        print(f"[expert-lead] notify: lead_id={lead_id} resend_http_{e.code} {e.read()[:200]}",
+              file=sys.stderr, flush=True)
+    except Exception as e:
+        print(f"[expert-lead] notify: lead_id={lead_id} error {type(e).__name__}: {e}",
+              file=sys.stderr, flush=True)
 
 
 # ---------- exports (filenames carry the synthetic label) ----------
