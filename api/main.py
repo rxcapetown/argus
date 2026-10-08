@@ -7,6 +7,7 @@ import csv
 import io
 import json
 import os
+import re
 import secrets
 import sqlite3
 from pathlib import Path
@@ -386,6 +387,78 @@ def api_benchmarks():
 REDACT_DIR = ROOT / "data" / "redact_jobs"
 REDACT_DIR.mkdir(parents=True, exist_ok=True)
 
+# Contributor code registry: unique NUMERICAL code per contributing company.
+# Anchored next to the DB file so it lives on the persistent volume in
+# production (same place ARGUS_DB points); also mirrored into the
+# contributors table. Revenue share attribution keys off this code.
+CONTRIBUTOR_REGISTRY = Path(DB_PATH).parent / "contributor_registry.json"
+_CONTRIBUTOR_CODE_START = 100001
+
+
+def _registry_load() -> dict:
+    if CONTRIBUTOR_REGISTRY.is_file():
+        try:
+            return json.loads(CONTRIBUTOR_REGISTRY.read_text())
+        except (json.JSONDecodeError, OSError):
+            return {}
+    return {}
+
+
+def _registry_save(reg: dict) -> None:
+    CONTRIBUTOR_REGISTRY.write_text(json.dumps(reg, indent=2))
+
+
+def _company_key(company_name: str, email: str) -> str:
+    key = re.sub(r"\s+", " ", (company_name or "").strip().lower())
+    if key:
+        return "co:" + key
+    return "email:" + (email or "").strip().lower()
+
+
+def mint_contributor_code(company_name: str, email: str = "",
+                          first_name: str = "", last_name: str = "",
+                          phone: str = "") -> str:
+    """Return the stable numerical contributor code for a company.
+
+    Same company (by normalized name, falling back to email) always gets
+    the same code, so every document it contributes is labeled consistently
+    for future revenue-share attribution.
+    """
+    reg = _registry_load()
+    key = _company_key(company_name, email)
+    hit = reg.get(key)
+    if hit and hit.get("code"):
+        return str(hit["code"])
+    used = {str(v.get("code")) for v in reg.values() if v.get("code")}
+    code = _CONTRIBUTOR_CODE_START
+    existing = [int(c) for c in used if c.isdigit()]
+    if existing:
+        code = max(existing + [_CONTRIBUTOR_CODE_START - 1]) + 1
+    while str(code) in used:
+        code += 1
+    code_s = str(code)
+    reg[key] = {
+        "code": code_s,
+        "company_name": (company_name or "").strip(),
+        "email": (email or "").strip(),
+        "contact": f"{(first_name or '').strip()} {(last_name or '').strip()}".strip(),
+        "phone": (phone or "").strip(),
+    }
+    _registry_save(reg)
+    try:
+        con = db()
+        try:
+            con.execute(
+                "INSERT OR IGNORE INTO contributors (contributor_code, role) VALUES (?, 'forwarder')",
+                (code_s,),
+            )
+            con.commit()
+        finally:
+            con.close()
+    except sqlite3.Error:
+        pass  # registry file is the source of truth; DB mirror is best-effort
+    return code_s
+
 
 def _finding_to_dict(f: Finding) -> dict:
     return {"id": f.id, "page": f.page, "rect": list(f.rect),
@@ -434,10 +507,14 @@ async def redact_upload(
     jobdir = REDACT_DIR / job_id
     jobdir.mkdir(parents=True)
     (jobdir / "original.pdf").write_bytes(data)
+    # Unique numerical contributor code per company — the revenue-share key.
+    contributor_code = mint_contributor_code(
+        company_name, email, first_name, last_name, phone)
     # Consent trail: what was accepted, when, by whom — never the doc values.
     from datetime import datetime, timezone
     (jobdir / "consent.json").write_text(json.dumps({
         "job_id": job_id,
+        "contributor_code": contributor_code,
         "contributor": {
             "first_name": first_name,
             "last_name": last_name,
@@ -460,6 +537,7 @@ async def redact_upload(
         json.dumps([_finding_to_dict(f) for f in findings], indent=2))
     (jobdir / "meta.json").write_text(json.dumps({
         "filename": file.filename,
+        "contributor_code": contributor_code,
         "contributor": {"first_name": first_name, "last_name": last_name,
                         "company_name": company_name, "email": email, "phone": phone},
         "extra_terms": terms}))
@@ -502,10 +580,13 @@ async def redact_confirm(request: Request, job_id: str,
         _who = f"{_who} ({_contrib['company_name']})".strip()
     audit = audit_log(job_id=job_id, filename=meta["filename"], original=original,
                       redacted=redacted, findings=findings,
-                      contributor_code=_who,
+                      contributor_code=meta.get("contributor_code") or _who,
                       terms_version=terms_v)
+    audit["contributor_display"] = _who
     (jobdir / "audit.json").write_text(json.dumps(audit, indent=2))
-    return templates.TemplateResponse(request, "redact_done.html", _template_ctx(request, job_id=job_id, audit=audit))
+    return templates.TemplateResponse(request, "redact_done.html", _template_ctx(
+        request, job_id=job_id, audit=audit,
+        contributor_code=meta.get("contributor_code") or ""))
 
 
 @app.get("/redact/download/{job_id}/{name}")

@@ -2,6 +2,13 @@
 {% block title %}Redaction complete{% endblock %}
 {% block content %}
 <h1>Redaction complete <span class="badge verified">verified</span></h1>
+{% if contributor_code %}
+<div class="card" style="border:2px solid #1a1a1a">
+<h3 style="margin-top:0">Your contributor code: {{ contributor_code }}</h3>
+<p style="margin-bottom:0">Save this number. Every document your company contributes is labeled with it,
+and any future revenue share will be attributed to this code.</p>
+</div>
+{% endif %}
 <div class="card">
 <p><strong>{{ audit.entities_redacted }}</strong> items permanently removed across
 <strong>{{ audit.redaction_kinds|length }}</strong> categories. The audit log records

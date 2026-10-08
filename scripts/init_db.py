@@ -34,8 +34,24 @@ def _saved_leads() -> list:
         return []
 
 
+def _saved_contributors() -> list:
+    """Runtime-minted contributor codes that must survive a seed rebuild."""
+    if not DB.exists():
+        return []
+    try:
+        con = sqlite3.connect(DB)
+        rows = con.execute(
+            "SELECT contributor_code, role, created_at FROM contributors"
+        ).fetchall()
+        con.close()
+        return rows
+    except sqlite3.Error:
+        return []
+
+
 def main() -> None:
     leads = _saved_leads()  # preserve across rebuilds (volume-backed DBs)
+    contributors = _saved_contributors()
     if DB.exists():
         DB.unlink()
     DB.parent.mkdir(parents=True, exist_ok=True)
@@ -48,6 +64,13 @@ def main() -> None:
                (first_name, last_name, company, phone, email, source, created_at)
                VALUES (?,?,?,?,?,?,?)""",
             leads,
+        )
+    if contributors:
+        cur.executemany(
+            """INSERT OR IGNORE INTO contributors
+               (contributor_code, role, created_at)
+               VALUES (?,?,?)""",
+            contributors,
         )
 
     dossiers = list(jsonl(DOSSIERS_PATH))
