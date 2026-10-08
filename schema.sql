@@ -135,3 +135,20 @@ CREATE TABLE IF NOT EXISTS expert_leads (
     source     TEXT NOT NULL DEFAULT 'landing',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS shipments (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    shipment_ref     TEXT NOT NULL,
+    contributor_code TEXT NOT NULL,   -- numerical code: revenue-share key
+    status           TEXT NOT NULL DEFAULT 'collecting',  -- collecting | ready | submitted
+    created_at       TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS shipment_documents (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    shipment_id INTEGER NOT NULL REFERENCES shipments(id),
+    job_id     TEXT NOT NULL UNIQUE,  -- redact_jobs/{job_id}
+    doc_type   TEXT NOT NULL,         -- one of the 8 canonical document types
+    filename   TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

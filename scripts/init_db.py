@@ -34,19 +34,32 @@ def _saved_leads() -> list:
         return []
 
 
-def _saved_contributors() -> list:
-    """Runtime-minted contributor codes that must survive a seed rebuild."""
+def _saved_table(table: str, cols: str) -> list:
+    """Runtime rows that must survive a seed rebuild."""
     if not DB.exists():
         return []
     try:
         con = sqlite3.connect(DB)
-        rows = con.execute(
-            "SELECT contributor_code, role, created_at FROM contributors"
-        ).fetchall()
+        rows = con.execute(f"SELECT {cols} FROM {table}").fetchall()
         con.close()
         return rows
     except sqlite3.Error:
         return []
+
+
+def _saved_contributors() -> list:
+    """Runtime-minted contributor codes that must survive a seed rebuild."""
+    return _saved_table("contributors", "contributor_code, role, created_at")
+
+
+def _saved_shipments() -> list:
+    return _saved_table("shipments", "id, shipment_ref, contributor_code, status, created_at")
+
+
+def _saved_shipment_documents() -> list:
+    return _saved_table(
+        "shipment_documents",
+        "id, shipment_id, job_id, doc_type, filename, created_at")
 
 
 def main() -> None:
@@ -71,6 +84,22 @@ def main() -> None:
                (contributor_code, role, created_at)
                VALUES (?,?,?)""",
             contributors,
+        )
+    shipments = _saved_shipments()
+    if shipments:
+        cur.executemany(
+            """INSERT OR IGNORE INTO shipments
+               (id, shipment_ref, contributor_code, status, created_at)
+               VALUES (?,?,?,?,?)""",
+            shipments,
+        )
+    ship_docs = _saved_shipment_documents()
+    if ship_docs:
+        cur.executemany(
+            """INSERT OR IGNORE INTO shipment_documents
+               (id, shipment_id, job_id, doc_type, filename, created_at)
+               VALUES (?,?,?,?,?,?)""",
+            ship_docs,
         )
 
     dossiers = list(jsonl(DOSSIERS_PATH))

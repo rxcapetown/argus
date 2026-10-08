@@ -20,7 +20,8 @@ from fastapi.templating import Jinja2Templates
 import pymupdf  # PyMuPDF — redaction flow
 
 from redact.detect import Finding, detect as detect_entities
-from redact.engine import apply_redactions, audit_log, render_preview
+from redact.engine import apply_redactions, audit_log, extract_text, render_preview
+from redact.classify import DOC_TYPES, classify_document
 from redact.terms import (TERMS_PARAGRAPHS, TERMS_TITLE, TERMS_VERSION,
                           terms_sha256)
 
@@ -584,9 +585,24 @@ async def redact_confirm(request: Request, job_id: str,
                       terms_version=terms_v)
     audit["contributor_display"] = _who
     (jobdir / "audit.json").write_text(json.dumps(audit, indent=2))
+    # Document-type guess for the shipment workspace: uploads land in the
+    # right dossier slot no matter what order they arrive in.
+    try:
+        doc_guess, doc_conf = classify_document(extract_text(original))
+    except Exception:
+        doc_guess, doc_conf = "commercial_invoice", 0.0
+    meta["doc_type_guess"] = doc_guess
+    meta["doc_type_confidence"] = doc_conf
+    (jobdir / "meta.json").write_text(json.dumps(meta, indent=2))
+    code = meta.get("contributor_code") or ""
+    my_shipments = rows(
+        "SELECT id, shipment_ref, status FROM shipments WHERE contributor_code = ?"
+        " ORDER BY created_at DESC LIMIT 20", (code,)) if code else []
     return templates.TemplateResponse(request, "redact_done.html", _template_ctx(
         request, job_id=job_id, audit=audit,
-        contributor_code=meta.get("contributor_code") or ""))
+        contributor_code=code,
+        doc_types=DOC_TYPES, doc_guess=doc_guess, doc_conf=doc_conf,
+        my_shipments=my_shipments))
 
 
 @app.get("/redact/download/{job_id}/{name}")
@@ -597,6 +613,80 @@ def redact_download(job_id: str, name: str, _auth: bool = Depends(require_api_ke
     if not p.is_file():
         raise HTTPException(404)
     return FileResponse(p, filename=f"argus_{job_id}_{name}")
+
+
+# ---------- shipment workspaces: align uploads into dossiers ----------
+
+@app.get("/shipments", response_class=HTMLResponse)
+def shipments_page(request: Request, code: str = ""):
+    shipments = []
+    if code:
+        shipments = rows(
+            """SELECT s.id, s.shipment_ref, s.status, s.created_at,
+                      (SELECT COUNT(*) FROM shipment_documents d WHERE d.shipment_id = s.id) AS n_docs
+               FROM shipments s WHERE s.contributor_code = ?
+               ORDER BY s.created_at DESC""", (code,))
+    return templates.TemplateResponse(request, "shipments.html", _template_ctx(
+        request, code=code, shipments=shipments))
+
+
+@app.get("/shipments/{shipment_id}", response_class=HTMLResponse)
+def shipment_page(request: Request, shipment_id: int):
+    ship = one("SELECT * FROM shipments WHERE id = ?", (shipment_id,))
+    if not ship:
+        raise HTTPException(404, "shipment not found")
+    docs = {r["doc_type"]: r for r in rows(
+        "SELECT * FROM shipment_documents WHERE shipment_id = ? ORDER BY created_at",
+        (shipment_id,))}
+    n_filled = len(docs)
+    return templates.TemplateResponse(request, "shipment_detail.html", _template_ctx(
+        request, ship=ship, docs=docs, doc_types=DOC_TYPES, n_filled=n_filled))
+
+
+@app.post("/shipments/attach")
+def shipment_attach(request: Request,
+                    _auth: bool = Depends(require_api_key),
+                    job_id: str = Form(...),
+                    doc_type: str = Form(...),
+                    shipment_ref: str = Form(""),
+                    shipment_id: str = Form("")):
+    valid_types = {t for t, _ in DOC_TYPES}
+    if doc_type not in valid_types:
+        raise HTTPException(400, "unknown document type")
+    jobdir = _job_dir(job_id)
+    meta = json.loads((jobdir / "meta.json").read_text())
+    code = meta.get("contributor_code") or ""
+    if not code:
+        raise HTTPException(400, "job has no contributor code")
+    con = db()
+    try:
+        sid = None
+        if shipment_id:
+            r = con.execute(
+                "SELECT id FROM shipments WHERE id = ? AND contributor_code = ?",
+                (shipment_id, code)).fetchone()
+            if r:
+                sid = r[0]
+        if sid is None:
+            ref = (shipment_ref or "").strip() or f"SHIP-{job_id[:6].upper()}"
+            cur = con.execute(
+                "INSERT INTO shipments (shipment_ref, contributor_code) VALUES (?, ?)",
+                (ref, code))
+            sid = cur.lastrowid
+        con.execute(
+            """INSERT OR IGNORE INTO shipment_documents
+               (shipment_id, job_id, doc_type, filename) VALUES (?,?,?,?)""",
+            (sid, job_id, doc_type, meta.get("filename", "")))
+        # mark ready once most of the 8 canonical slots are filled
+        n = con.execute(
+            "SELECT COUNT(DISTINCT doc_type) FROM shipment_documents WHERE shipment_id = ?",
+            (sid,)).fetchone()[0]
+        if n >= 6:
+            con.execute("UPDATE shipments SET status = 'ready' WHERE id = ?", (sid,))
+        con.commit()
+    finally:
+        con.close()
+    return RedirectResponse(f"/shipments/{sid}", status_code=303)
 
 
 @app.post("/api/expert-leads")

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Shipment workspaces{% endblock %}
+{% block content %}
+<h1>Shipment workspaces</h1>
+<p style="color:#444;max-width:40rem">Every document you redact can be slotted into a shipment workspace —
+the eight canonical dossier documents, aligned per shipment, no matter what order they arrive in.</p>
+<div class="card">
+<form method="get" action="/shipments">
+<label><strong>Your contributor code</strong><br>
+<input type="text" name="code" value="{{ code }}" placeholder="e.g. 100001" style="min-width:12rem"></label>
+<button type="submit">Show my shipments</button>
+</form>
+</div>
+{% if code %}
+<h2>Shipments for code {{ code }}</h2>
+{% if shipments %}
+<table>
+<tr><th>Reference</th><th>Status</th><th>Documents</th><th>Created</th></tr>
+{% for s in shipments %}
+<tr><td><a href="/shipments/{{ s.id }}"><strong>{{ s.shipment_ref }}</strong></a></td>
+<td><span class="tag">{{ s.status }}</span></td><td>{{ s.n_docs }} / 8</td><td>{{ s.created_at[:10] }}</td></tr>
+{% endfor %}
+</table>
+{% else %}
+<p style="color:#666">No shipments yet for this code. They appear here after you add a redacted document to a workspace.</p>
+{% endif %}
+{% endif %}
+{% endblock %}

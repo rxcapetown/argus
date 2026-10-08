@@ -27,6 +27,33 @@ kinds and counts only — never the removed values.</p>
 </p>
 </div>
 <div class="card">
+<h3>Align it into a shipment dossier</h3>
+<p style="color:#444">No matter what order documents arrive in, each one is classified and slotted into
+its shipment's dossier — invoice, packing list, bill of lading, and the rest.</p>
+<form method="post" action="/shipments/attach">
+<input type="hidden" name="job_id" value="{{ job_id }}">
+<p><label><strong>What type of document is this?</strong><br>
+<select name="doc_type" style="min-width:16rem">
+{% for t, label in doc_types %}
+<option value="{{ t }}"{% if t == doc_guess %} selected{% endif %}>{{ label }}{% if t == doc_guess %} (detected){% endif %}</option>
+{% endfor %}
+</select></label></p>
+<p><label><strong>Shipment reference</strong> (new or existing)<br>
+<input type="text" name="shipment_ref" placeholder="e.g. SHP-2026-1184" style="min-width:16rem"></label></p>
+{% if my_shipments %}
+<p><label><strong>Or add to an existing shipment</strong><br>
+<select name="shipment_id" style="min-width:16rem">
+<option value="">— new shipment —</option>
+{% for s in my_shipments %}
+<option value="{{ s.id }}">{{ s.shipment_ref }} ({{ s.status }})</option>
+{% endfor %}
+</select></label></p>
+{% endif %}
+<button type="submit">Add to shipment workspace</button>
+</form>
+<p style="margin-top:.8rem"><a href="/shipments?code={{ contributor_code }}">View all my shipment workspaces →</a></p>
+</div>
+<div class="card">
 <h3>What happens next</h3>
 <p>The redacted document can now enter the contribution flow: it is annotated
 against the exception taxonomy by your team, then cross-verified by a different

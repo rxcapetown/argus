@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Shipment {{ ship.shipment_ref }}{% endblock %}
+{% block content %}
+<h1>Shipment {{ ship.shipment_ref }} <span class="tag">{{ ship.status }}</span></h1>
+<p style="color:#444">Contributor code <strong>{{ ship.contributor_code }}</strong> ·
+<strong>{{ n_filled }} of 8</strong> dossier documents aligned.</p>
+<div class="card">
+<table>
+<tr><th>Document slot</th><th>Status</th><th>File</th><th></th></tr>
+{% for t, label in doc_types %}
+<tr>
+<td><strong>{{ label }}</strong></td>
+{% if t in docs %}
+<td><span class="badge verified">aligned</span></td>
+<td>{{ docs[t].filename }}</td>
+<td><a href="/redact/download/{{ docs[t].job_id }}/redacted.pdf">redacted PDF</a></td>
+{% else %}
+<td><span class="tag">missing</span></td><td>—</td><td>—</td>
+{% endif %}
+</tr>
+{% endfor %}
+</table>
+</div>
+<div class="card">
+<h3>Add another document to this shipment</h3>
+<p style="color:#444">Upload and redact as usual — on the confirmation screen, choose this shipment
+({{ ship.shipment_ref }}) and the document slots itself in.</p>
+<p><a href="/redact"><button>Upload a document</button></a></p>
+</div>
+{% if ship.status == 'ready' %}
+<div class="card" style="border:2px solid #1a1a1a">
+<h3 style="margin-top:0">Dossier nearly complete</h3>
+<p style="margin-bottom:0">6+ of 8 documents aligned. This shipment is ready to enter annotation against
+the exception taxonomy.</p>
+</div>
+{% endif %}
+{% endblock %}
