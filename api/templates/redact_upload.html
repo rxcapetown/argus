@@ -36,6 +36,48 @@ until you confirm.</p>
 stream, not covered with boxes. An audit log records <em>what kinds</em> of items were
 removed and how many — never their values.</p>
 
+<div class="card" style="margin-top:1.2rem">
+<details>
+<summary style="cursor:pointer;font-weight:700;font-size:1.05rem">View a sample full-set dossier <span class="tag">synthetic sample · view only · reference</span></summary>
+<div style="margin-top:.8rem">
+<p style="color:#444">One dossier = <strong>one shipment, end to end</strong>: every document from booking to delivery, plus the expert's judgment on what went wrong, what it cost, and how it was resolved. If you can lay hands on these eight documents for a shipment, you can contribute a dossier.</p>
+<h3 style="margin:.9rem 0 .4rem">The eight documents</h3>
+<ol style="margin:0 0 0 1.2rem;padding:0;color:#333">
+<li><strong>Commercial invoice</strong> — declared value, quantity, unit price, HS code, Incoterms</li>
+<li><strong>Packing list</strong> — carton count, piece count, gross/net weight, dimensions</li>
+<li><strong>Bill of lading</strong> — vessel/voyage, container &amp; seal numbers, port dates, freight terms</li>
+<li><strong>Certificate of origin</strong> — origin country, HS code as declared to the chamber</li>
+<li><strong>Letter of credit</strong> (if applicable) — LC value, latest shipment date, tolerance clauses</li>
+<li><strong>Insurance certificate</strong> — insured value, coverage terms</li>
+<li><strong>Inspection certificate</strong> (if applicable) — inspected quantity, defect findings</li>
+<li><strong>Export customs declaration</strong> — declared value &amp; HS code as filed</li>
+</ol>
+<h3 style="margin:.9rem 0 .4rem">Worked example <span class="tag">synthetic</span></h3>
+<p style="color:#444;margin-bottom:.4rem"><strong>Dossier ARG-2026-04562</strong> — men's cotton knit polos, 12,000 pcs / 8,400 kg, Chattogram → Rotterdam, HTS 6105.10.00.</p>
+<div style="border:1px solid #e3e3e3;border-radius:8px;padding:.8rem 1rem;background:#fafafa">
+<p><span class="tag" style="background:#1a1a1a;color:#fff">VALUE_MISMATCH</span></p>
+<table style="width:100%;border-collapse:collapse;font-size:.92rem;margin-top:.4rem">
+<tr><td style="font-weight:700;padding:.25rem .5rem .25rem 0;vertical-align:top;white-space:nowrap">Compared</td><td style="padding:.25rem 0;vertical-align:top">Commercial invoice INV-2291 × letter of credit LC-88412 (field 45A)</td></tr>
+<tr><td style="font-weight:700;padding:.25rem .5rem .25rem 0;vertical-align:top;white-space:nowrap">What was wrong</td><td style="padding:.25rem 0;vertical-align:top">Invoice total <strong>$48,500</strong> exceeded the LC value of <strong>$47,900</strong> by $600.</td></tr>
+<tr><td style="font-weight:700;padding:.25rem .5rem .25rem 0;vertical-align:top;white-space:nowrap">Expert decision</td><td style="padding:.25rem 0;vertical-align:top">Hold documents; have the shipper amend the invoice to the LC value (cheaper and faster than amending the LC).</td></tr>
+<tr><td style="font-weight:700;padding:.25rem .5rem .25rem 0;vertical-align:top;white-space:nowrap">Cost impact</td><td style="padding:.25rem 0;vertical-align:top">2-day document hold; $380 detention at transshipment port.</td></tr>
+<tr><td style="font-weight:700;padding:.25rem .5rem .25rem 0;vertical-align:top;white-space:nowrap">Resolution</td><td style="padding:.25rem 0;vertical-align:top">Amended invoice issued 18 Mar; documents accepted; cargo released 20 Mar.</td></tr>
+</table>
+</div>
+<h3 style="margin:.9rem 0 .4rem">How documents map to exceptions</h3>
+<table style="width:100%;border-collapse:collapse;font-size:.88rem">
+<tr><td style="font-weight:700;padding:.25rem .5rem .25rem 0;border-bottom:1px solid #eee;white-space:nowrap">VALUE_MISMATCH</td><td style="padding:.25rem 0;border-bottom:1px solid #eee">Invoice × letter of credit × bill of lading</td></tr>
+<tr><td style="font-weight:700;padding:.25rem .5rem .25rem 0;border-bottom:1px solid #eee;white-space:nowrap">QUANTITY_VARIANCE</td><td style="padding:.25rem 0;border-bottom:1px solid #eee">Packing list × bill of lading × inspection certificate</td></tr>
+<tr><td style="font-weight:700;padding:.25rem .5rem .25rem 0;border-bottom:1px solid #eee;white-space:nowrap">HS_MISCLASSIFICATION</td><td style="padding:.25rem 0;border-bottom:1px solid #eee">Invoice × certificate of origin × customs declaration</td></tr>
+<tr><td style="font-weight:700;padding:.25rem .5rem .25rem 0;border-bottom:1px solid #eee;white-space:nowrap">LATE_SHIPMENT</td><td style="padding:.25rem 0;border-bottom:1px solid #eee">Bill of lading (on-board date) × LC latest shipment date</td></tr>
+<tr><td style="font-weight:700;padding:.25rem .5rem .25rem 0;border-bottom:1px solid #eee;white-space:nowrap">WEIGHT_DISCREPANCY</td><td style="padding:.25rem 0;border-bottom:1px solid #eee">Packing list × bill of lading</td></tr>
+<tr><td style="font-weight:700;padding:.25rem .5rem .25rem 0;border-bottom:1px solid #eee;white-space:nowrap">LC_TERM_DISCREPANCY</td><td style="padding:.25rem 0;border-bottom:1px solid #eee">Letter of credit × presented documents</td></tr>
+<tr><td style="font-weight:700;padding:.25rem .5rem .25rem 0;white-space:nowrap">INSURANCE_GAP</td><td style="padding:.25rem 0">Insurance certificate × commercial invoice value</td></tr>
+</table>
+</div>
+</details>
+</div>
+
 <div id="termsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;align-items:center;justify-content:center">
 <div style="background:#fff;border-radius:10px;max-width:34rem;width:92%;max-height:84vh;overflow:auto;padding:1.6rem">
 <h2 style="margin-top:0">{{ terms_title }}</h2>
