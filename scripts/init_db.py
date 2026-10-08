@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # Honor ARGUS_DB so the DB can live on a persistent Railway volume.
 DB = Path(os.environ.get("ARGUS_DB", str(ROOT / "argus.db")))
 DOSSIERS_PATH = ROOT / "seed" / "synthetic_dossiers_full.jsonl"
-RULINGS_PATH = ROOT / "data" / "cross_ch61_62_final_20261006.jsonl"
+RULINGS_PATH = ROOT / "data" / "cross_ch61_62_final_20261008.jsonl"
 
 
 def jsonl(path: Path):
