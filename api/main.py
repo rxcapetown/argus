@@ -525,18 +525,55 @@ def api_expert_lead(
     if not all([first_name.strip(), last_name.strip(), company.strip(),
                 phone.strip(), email.strip()]) or "@" not in email:
         raise HTTPException(400, "all fields are required and email must be valid")
+    lead = {"first_name": first_name.strip(), "last_name": last_name.strip(),
+            "company": company.strip(), "phone": phone.strip(), "email": email.strip()}
     con = db()
     try:
         cur = con.execute(
             """INSERT INTO expert_leads (first_name, last_name, company, phone, email)
                VALUES (?,?,?,?,?)""",
-            (first_name.strip(), last_name.strip(), company.strip(),
-             phone.strip(), email.strip()),
+            (lead["first_name"], lead["last_name"], lead["company"],
+             lead["phone"], lead["email"]),
         )
         con.commit()
-        return {"ok": True, "lead_id": cur.lastrowid}
+        lead_id = cur.lastrowid
     finally:
         con.close()
+    _notify_lead_email(lead_id, lead)  # best-effort; never blocks the signup
+    return {"ok": True, "lead_id": lead_id}
+
+
+def _notify_lead_email(lead_id: int, lead: dict) -> None:
+    """Email the site owner about a new expert lead via Resend.
+
+    Active only when RESEND_API_KEY and LEAD_NOTIFY_EMAIL are set.
+    Fail-open: any error is swallowed so signups are never blocked.
+    """
+    api_key = os.environ.get("RESEND_API_KEY", "")
+    to = os.environ.get("LEAD_NOTIFY_EMAIL", "")
+    if not api_key or not to:
+        return
+    try:
+        import urllib.request
+        body = json.dumps({
+            "from": os.environ.get("LEAD_NOTIFY_FROM", "onboarding@resend.dev"),
+            "to": [to],
+            "subject": f"New expert lead #{lead_id}: {lead['first_name']} {lead['last_name']} — {lead['company']}",
+            "text": (f"New expert signup on the Argus landing page:\n\n"
+                     f"Name: {lead['first_name']} {lead['last_name']}\n"
+                     f"Company: {lead['company']}\n"
+                     f"Phone: {lead['phone']}\n"
+                     f"Email: {lead['email']}\n"
+                     f"Lead ID: {lead_id}\n"),
+        }).encode()
+        req = urllib.request.Request(
+            "https://api.resend.com/emails", data=body,
+            headers={"Authorization": f"Bearer {api_key}",
+                     "Content-Type": "application/json"},
+            method="POST")
+        urllib.request.urlopen(req, timeout=10).read()
+    except Exception:
+        pass
 
 
 # ---------- exports (filenames carry the synthetic label) ----------

@@ -1,10 +1,12 @@
 """Initialize the Argus SQLite DB from the full synthetic corpus and final CBP snapshot."""
 import json
+import os
 import sqlite3
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DB = ROOT / "argus.db"
+# Honor ARGUS_DB so the DB can live on a persistent Railway volume.
+DB = Path(os.environ.get("ARGUS_DB", str(ROOT / "argus.db")))
 DOSSIERS_PATH = ROOT / "seed" / "synthetic_dossiers_full.jsonl"
 RULINGS_PATH = ROOT / "data" / "cross_ch61_62_final_20261006.jsonl"
 
@@ -16,12 +18,37 @@ def jsonl(path: Path):
                 yield json.loads(line)
 
 
+def _saved_leads() -> list:
+    """User-submitted expert leads that must survive a seed rebuild."""
+    if not DB.exists():
+        return []
+    try:
+        con = sqlite3.connect(DB)
+        rows = con.execute(
+            "SELECT first_name, last_name, company, phone, email, source, created_at"
+            " FROM expert_leads"
+        ).fetchall()
+        con.close()
+        return rows
+    except sqlite3.Error:
+        return []
+
+
 def main() -> None:
+    leads = _saved_leads()  # preserve across rebuilds (volume-backed DBs)
     if DB.exists():
         DB.unlink()
+    DB.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(DB)
     cur = con.cursor()
     cur.executescript((ROOT / "schema.sql").read_text())
+    if leads:
+        cur.executemany(
+            """INSERT INTO expert_leads
+               (first_name, last_name, company, phone, email, source, created_at)
+               VALUES (?,?,?,?,?,?,?)""",
+            leads,
+        )
 
     dossiers = list(jsonl(DOSSIERS_PATH))
     contributor_codes = sorted({
