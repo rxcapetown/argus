@@ -51,8 +51,8 @@ That judgment has never been captured. We structure it into training data for th
 </div>
 
 <div class="lp-stats">
-<div class="lp-stat"><div class="n">{{ stats.n }}</div><div class="l">dossiers</div></div>
-<div class="lp-stat"><div class="n">{{ stats.verified }}</div><div class="l">verified</div></div>
+<div class="lp-stat"><div class="n">{{ stats.n }}</div><div class="l">synthetic demo dossiers</div></div>
+<div class="lp-stat"><div class="n">{{ stats.verified }}</div><div class="l">verified <span class="lp-fine">(demo)</span></div></div>
 <div class="lp-stat"><div class="n">{{ rulings }}</div><div class="l">public CBP rulings</div></div>
 <div class="lp-stat"><div class="n">{{ codes }}</div><div class="l">exception types</div></div>
 </div>
@@ -81,6 +81,26 @@ Every record carries the decision, the evidence, the reasoning, and the outcome 
 <div class="lp-card"><h3>Agent trajectories</h3><p>Step-by-step decision sequences across the document set — how an expert works a case from flag to resolution.</p></div>
 <div class="lp-card"><h3>Evaluation suites</h3><p>Verified exception sets that score whether a trade AI actually makes the right call, not just a plausible one.</p></div>
 </div>
+</div>
+
+<div class="lp-section">
+<p class="lp-eyebrow">What a dossier looks like</p>
+<h2>One shipment, end to end — plus the expert's judgment.</h2>
+<p class="standfirst">A dossier is the full document set for one shipment — invoice, packing list, bill of lading,
+certificate of origin, letter of credit, insurance, inspection, customs declaration — with the expert's
+annotation on what went wrong, what it cost, and how it was resolved. <span class="badge synth">SYNTHETIC SAMPLE</span></p>
+<div class="lp-card" style="margin-top:1.4rem">
+<p style="margin:0 0 .6rem;color:#444"><strong>Dossier ARG-2026-04562</strong> — men's cotton knit polos,
+12,000 pcs / 8,400 kg, Ho Chi Minh City → Rotterdam, HTS 6105.10.00.</p>
+<p style="margin:0 0 .6rem"><span class="tag" style="background:#1a1a1a;color:#fff">VALUE_MISMATCH</span></p>
+<p style="margin:0 0 .4rem"><strong>What was wrong:</strong> invoice total <strong>$48,500</strong> exceeded the
+letter-of-credit value of <strong>$47,900</strong> by $600.</p>
+<p style="margin:0 0 .4rem"><strong>Expert decision:</strong> hold documents; have the shipper amend the invoice to the
+LC value — cheaper and faster than amending the LC.</p>
+<p style="margin:0"><strong>Cost impact:</strong> 2-day document hold; $380 detention at transshipment port.
+Amended invoice issued 18 Mar; cargo released 20 Mar.</p>
+</div>
+<p style="margin-top:1.2rem"><a href="/redact#sample" style="font-weight:700">See the full sample dossier — all eight documents and the document-to-exception map →</a></p>
 </div>
 
 <div class="lp-section">

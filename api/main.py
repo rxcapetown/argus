@@ -155,6 +155,11 @@ def index(request: Request):
         _template_ctx(request, stats=stats, rulings=rulings, codes=codes))
 
 
+@app.get("/story", response_class=HTMLResponse)
+def story_page(request: Request):
+    return templates.TemplateResponse(request, "story.html", _template_ctx(request))
+
+
 @app.get("/dossiers", response_class=HTMLResponse)
 def dossiers_page(request: Request, code: str = "", status: str = ""):
     q = "SELECT * FROM dossiers WHERE 1=1"
