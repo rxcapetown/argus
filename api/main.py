@@ -80,7 +80,7 @@ def _template_ctx(request: Request, **extra):
     return ctx
 
 FOOTER = ('Argus Data Labs · For partnerships &amp; investment: '
-          '<a href="mailto:intro@argusdatalabs.com">intro@argusdatalabs.com</a> · '
+          '<a href="mailto:mashruf@gmail.com">mashruf@gmail.com</a> · '
           'Draft — demo built on synthetic dossiers and public CBP rulings.')
 
 STRIPPED_FIELDS = [
