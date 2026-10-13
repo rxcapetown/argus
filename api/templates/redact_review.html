@@ -2,7 +2,7 @@
 {% block title %}Review redaction{% endblock %}
 {% block content %}
 <h1>Review the redaction</h1>
-<p>Left: your original. Right: what leaves your office — <span style="color:#a00;font-weight:700">red boxes will be permanently removed</span>.
+<p>Left: your original. Right: what leaves your office. <span style="color:#a00;font-weight:700">red boxes will be permanently removed</span>.
 Uncheck any item to restore it before confirming.</p>
 
 <form action="/redact/confirm/{{ job_id }}" method="post">

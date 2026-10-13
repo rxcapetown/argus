@@ -11,7 +11,7 @@
 <form method="post" action="/redact/batch/{{ batch.batch_id }}/approve">
 <input type="hidden" name="job_id" value="all">
 <input type="hidden" name="scope" value="all">
-<button type="submit" style="font-size:1.05rem">Approve all remaining ({{ remaining|length }}) — one click per document, ~10 seconds each</button>
+<button type="submit" style="font-size:1.05rem">Approve all remaining ({{ remaining|length }}): one click per document, ~10 seconds each</button>
 </form>
 <p style="color:#666;font-size:.85rem;margin-bottom:0">Approves every detected item in each document and slots it into the
 shipment workspace using the detected document type. Use the per-document Review link below for item-by-item control.</p>

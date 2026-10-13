@@ -4,7 +4,7 @@
 <h1>{{ d.reference }} <span class="badge synth">SYNTHETIC DEMO DATA</span>
 {% if d.status=='verified' %}<span class="badge verified">verified</span>{% endif %}</h1>
 <p>{{ d.origin }} → {{ d.destination }} · {{ d.commodity }} · HS {{ d.hs_code }} · {{ d.incoterm }} · {{ d.shipment_date }}</p>
-<p><span class="tag">Vintage {{ d.vintage_year }} — {{ d.regime_note }}</span></p>
+<p><span class="tag">Vintage {{ d.vintage_year }}: {{ d.regime_note }}</span></p>
 
 <h2>Redaction panel</h2>
 <div class="panel">
@@ -20,12 +20,12 @@ Freight <strong>${{ "{:,}".format(d.freight_cost_usd or 0) }}</strong> ·
 
 <h2>Provenance timeline</h2>
 <ul class="timeline">
-<li><strong>Ingested</strong> — dossier created {{ d.created_at }}</li>
-<li><strong>Redacted</strong> — identities stripped at intake; values retained</li>
+<li><strong>Ingested</strong>: dossier created {{ d.created_at }}</li>
+<li><strong>Redacted</strong>: identities stripped at intake; values retained</li>
 {% for a in d.annotations %}
-<li><strong>Annotated</strong> by contributor <code>{{ a.contributor_code }}</code> — {{ a.exception_code }} (annotation #{{ a.id }})</li>
+<li><strong>Annotated</strong> by contributor <code>{{ a.contributor_code }}</code>: {{ a.exception_code }} (annotation #{{ a.id }})</li>
 {% for v in a.verifications %}
-<li><strong>Verified</strong> by <code>{{ v.verifier_code }}</code> — verdict: {{ v.verdict }}{% if v.notes %} — {{ v.notes }}{% endif %}</li>
+<li><strong>Verified</strong> by <code>{{ v.verifier_code }}</code>: verdict {{ v.verdict }}{% if v.notes %} ({{ v.notes }}){% endif %}</li>
 {% endfor %}
 {% endfor %}
 </ul>

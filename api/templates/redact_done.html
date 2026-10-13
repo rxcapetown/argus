@@ -12,7 +12,7 @@ and any future revenue share will be attributed to this code.</p>
 <div class="card">
 <p><strong>{{ audit.entities_redacted }}</strong> items permanently removed across
 <strong>{{ audit.redaction_kinds|length }}</strong> categories. The audit log records
-kinds and counts only — never the removed values.</p>
+kinds and counts only. Never the removed values.</p>
 <table>
 <tr><th>Category</th><th>Items removed</th></tr>
 {% for kind, n in audit.redaction_kinds.items() %}
@@ -29,7 +29,7 @@ kinds and counts only — never the removed values.</p>
 <div class="card">
 <h3>Align it into a shipment dossier</h3>
 <p style="color:#444">No matter what order documents arrive in, each one is classified and slotted into
-its shipment's dossier — invoice, packing list, bill of lading, and the rest.</p>
+its shipment's dossier: invoice, packing list, bill of lading, and the rest.</p>
 <form method="post" action="/shipments/attach">
 <input type="hidden" name="job_id" value="{{ job_id }}">
 <p><label><strong>What type of document is this?</strong><br>
@@ -43,7 +43,7 @@ its shipment's dossier — invoice, packing list, bill of lading, and the rest.<
 {% if my_shipments %}
 <p><label><strong>Or add to an existing shipment</strong><br>
 <select name="shipment_id" style="min-width:16rem">
-<option value="">— new shipment —</option>
+<option value="">new shipment</option>
 {% for s in my_shipments %}
 <option value="{{ s.id }}">{{ s.shipment_ref }} ({{ s.status }})</option>
 {% endfor %}
