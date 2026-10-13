@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Contribute — redacted upload{% endblock %}
+{% block title %}Contribute: redacted upload{% endblock %}
 {% block content %}
 <h1>Contribute documents, <span style="color:#5b21b6">keep your clients</span></h1>
 <p>Upload a shipment document (PDF). Argus detects identifying information,
 shows you <strong>exactly what will be removed</strong> side-by-side, and only
-finalizes the redaction when you approve it — item by item. Nothing is shared
-until you confirm. Upload documents in any order — each one is classified and
+finalizes the redaction when you approve it, item by item. Nothing is shared
+until you confirm. Upload documents in any order. Each one is classified and
 aligned into a <a href="/shipments">shipment workspace</a>, so a scattered pile
 becomes a structured dossier instead of loose files.</p>
 
@@ -31,11 +31,11 @@ becomes a structured dossier instead of loose files.</p>
 <label>Company name<br><input type="text" name="company_name" required style="width:16rem"></label><br><br>
 <label>Email address<br><input type="email" name="email" required style="width:16rem"></label><br><br>
 <label>Phone number<br><input type="tel" name="phone" required style="width:16rem"></label><br><br>
-<label>Names that must never appear (one per line) — your company, key clients<br>
+<label>Names that must never appear (one per line): your company, key clients<br>
 <textarea name="extra_terms" rows="3" cols="48" placeholder="Acme Freight Ltd&#10;Globex Trading Inc"></textarea></label><br><br>
-<label>Shipment reference <span style="color:#666;font-weight:400">(optional — leave blank for a new shipment per batch)</span><br>
+<label>Shipment reference <span style="color:#666;font-weight:400">(optional: leave blank for a new shipment per batch)</span><br>
 <input type="text" name="shipment_ref" placeholder="e.g. SHP-2026-1184" style="width:16rem"></label><br><br>
-<label>Documents (PDF — select one or many)<br><input type="file" name="files" accept="application/pdf" multiple required></label><br><br>
+<label>Documents (PDF, select one or many)<br><input type="file" name="files" accept="application/pdf" multiple required></label><br><br>
 {% if api_key_required %}<input type="password" name="api_key" placeholder="API key" required><br><br>{% endif %}
 <input type="hidden" name="terms_accepted" id="termsAccepted" value="">
 <input type="hidden" name="terms_version" value="{{ terms_version }}">
@@ -61,7 +61,7 @@ document.getElementById('ccodeBtn').addEventListener('click', async function(){
 </script>
 <p style="color:#666;font-size:.85rem">Redaction is true redaction: approved items are removed from the PDF content
 stream, not covered with boxes. An audit log records <em>what kinds</em> of items were
-removed and how many — never their values.</p>
+removed and how many, never their values.</p>
 
 <div class="card" id="sample" style="margin-top:1.2rem">
 <details>
@@ -70,17 +70,17 @@ removed and how many — never their values.</p>
 <p style="color:#444">One dossier = <strong>one shipment, end to end</strong>: every document from booking to delivery, plus the expert's judgment on what went wrong, what it cost, and how it was resolved. If you can lay hands on these eight documents for a shipment, you can contribute a dossier.</p>
 <h3 style="margin:.9rem 0 .4rem">The eight documents</h3>
 <ol style="margin:0 0 0 1.2rem;padding:0;color:#333">
-<li><strong>Commercial invoice</strong> — declared value, quantity, unit price, HS code, Incoterms</li>
-<li><strong>Packing list</strong> — carton count, piece count, gross/net weight, dimensions</li>
-<li><strong>Bill of lading</strong> — vessel/voyage, container &amp; seal numbers, port dates, freight terms</li>
-<li><strong>Certificate of origin</strong> — origin country, HS code as declared to the chamber</li>
-<li><strong>Letter of credit</strong> (if applicable) — LC value, latest shipment date, tolerance clauses</li>
-<li><strong>Insurance certificate</strong> — insured value, coverage terms</li>
-<li><strong>Inspection certificate</strong> (if applicable) — inspected quantity, defect findings</li>
-<li><strong>Export customs declaration</strong> — declared value &amp; HS code as filed</li>
+<li><strong>Commercial invoice</strong>: declared value, quantity, unit price, HS code, Incoterms</li>
+<li><strong>Packing list</strong>: carton count, piece count, gross/net weight, dimensions</li>
+<li><strong>Bill of lading</strong>: vessel/voyage, container &amp; seal numbers, port dates, freight terms</li>
+<li><strong>Certificate of origin</strong>: origin country, HS code as declared to the chamber</li>
+<li><strong>Letter of credit</strong> (if applicable): LC value, latest shipment date, tolerance clauses</li>
+<li><strong>Insurance certificate</strong>: insured value, coverage terms</li>
+<li><strong>Inspection certificate</strong> (if applicable): inspected quantity, defect findings</li>
+<li><strong>Export customs declaration</strong>: declared value &amp; HS code as filed</li>
 </ol>
 <h3 style="margin:.9rem 0 .4rem">Worked example <span class="tag">synthetic</span></h3>
-<p style="color:#444;margin-bottom:.4rem"><strong>Dossier ARG-2026-04562</strong> — men's cotton knit polos, 12,000 pcs / 8,400 kg, Ho Chi Minh City → Rotterdam, HTS 6105.10.00.</p>
+<p style="color:#444;margin-bottom:.4rem"><strong>Dossier ARG-2026-04562</strong>: men's cotton knit polos, 12,000 pcs / 8,400 kg, Ho Chi Minh City → Rotterdam, HTS 6105.10.00.</p>
 <div style="border:1px solid #e3e3e3;border-radius:8px;padding:.8rem 1rem;background:#fafafa">
 <p><span class="tag" style="background:#1a1a1a;color:#fff">VALUE_MISMATCH</span></p>
 <table style="width:100%;border-collapse:collapse;font-size:.92rem;margin-top:.4rem">

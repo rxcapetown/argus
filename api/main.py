@@ -1,4 +1,4 @@
-"""Argus MVP API — Trade Exception Corpus.
+"""Argus MVP API: Trade Exception Corpus.
 
 SQLite-backed FastAPI app, server-rendered Jinja2 UI, no build step.
 Business rule enforced: a verifier must differ from the annotation's contributor.
@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.security import APIKeyHeader
 from fastapi.templating import Jinja2Templates
 
-import pymupdf  # PyMuPDF — redaction flow
+import pymupdf  # PyMuPDF, redaction flow
 
 from redact.detect import Finding, detect as detect_entities
 from redact.engine import apply_redactions, audit_log, extract_text, render_preview
@@ -35,14 +35,14 @@ DB_PATH = os.environ.get("ARGUS_DB", str(ROOT / "argus.db"))
 API_KEY = os.environ.get("ARGUS_API_KEY", "")
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-app = FastAPI(title="Argus Data Labs — Trade Exception Corpus", version="0.1.0")
+app = FastAPI(title="Argus Data Labs: Trade Exception Corpus", version="0.1.0")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
 
 @app.on_event("startup")
 def _auth_warning():
     if not API_KEY:
-        print("WARNING: ARGUS_API_KEY is not set — write & export endpoints are OPEN (demo mode).")
+        print("WARNING: ARGUS_API_KEY is not set. Write and export endpoints are OPEN (demo mode).")
 
 
 async def require_api_key(
@@ -80,8 +80,8 @@ def _template_ctx(request: Request, **extra):
     return ctx
 
 FOOTER = ('Argus Data Labs · For partnerships &amp; investment: '
-          '<a href="mailto:mashruf@gmail.com">mashruf@gmail.com</a> · '
-          'Draft — demo built on synthetic dossiers and public CBP rulings.')
+          '<a href="mailto:intro@argusdatalabs.com">intro@argusdatalabs.com</a> · '
+          'Draft. Demo built on synthetic dossiers and public CBP rulings.')
 
 STRIPPED_FIELDS = [
     "buyer name", "supplier name", "forwarder name",
@@ -586,10 +586,10 @@ async def redact_upload(
         if not data.startswith(b"%PDF"):
             raise HTTPException(400, f"only PDF uploads are supported: {f.filename}")
         f._data = data  # stash so we don't re-read below
-    # Unique numerical contributor code per company — minted once per batch.
+    # Unique numerical contributor code per company, minted once per batch.
     contributor_code = mint_contributor_code(
         company_name, email, first_name, last_name, phone)
-    # Consent trail: what was accepted, when, by whom — never the doc values.
+    # Consent trail: what was accepted, when, by whom. Never the doc values.
     from datetime import datetime, timezone
     accepted_at = datetime.now(timezone.utc).isoformat()
     user_agent = request.headers.get("user-agent", "")
@@ -639,7 +639,7 @@ async def redact_upload(
     if (shipment_ref or "").strip() or len(jobs) > 1:
         shipment_id = _get_or_create_shipment(shipment_ref, contributor_code)
     if len(jobs) == 1 and shipment_id is None:
-        # single careful upload — keep the classic review flow unchanged
+        # single careful upload; keep the classic review flow unchanged
         return RedirectResponse(f"/redact/review/{jobs[0]['job_id']}", status_code=303)
     batch_id = secrets.token_hex(8)
     batchdir = REDACT_BATCH_DIR / batch_id
@@ -910,7 +910,7 @@ def _notify_lead_email(lead_id: int, lead: dict) -> None:
         body = json.dumps({
             "from": os.environ.get("LEAD_NOTIFY_FROM", "onboarding@resend.dev"),
             "to": [to],
-            "subject": f"New expert lead #{lead_id}: {lead['first_name']} {lead['last_name']} — {lead['company']}",
+            "subject": f"New expert lead #{lead_id}: {lead['first_name']} {lead['last_name']} ({lead['company']})",
             "text": (f"New expert signup on the Argus landing page:\n\n"
                      f"Name: {lead['first_name']} {lead['last_name']}\n"
                      f"Company: {lead['company']}\n"
