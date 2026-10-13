@@ -36,7 +36,7 @@ Freight <strong>${{ "{:,}".format(d.freight_cost_usd or 0) }}</strong> ·
 <div class="card">
 <p><strong>{{ a.exception_code }}</strong>
 {% if d.tax_codes[a.exception_code].status=='proposed' %}<span class="badge prop">proposed v0.1</span>{% endif %}</p>
-<p><strong>Documents compared:</strong> {{ a.documents_compared }}</p>
+<p><strong>Documents compared:</strong> {{ a.documents_compared_list | join(", ") }}</p>
 <p><strong>Decision:</strong> {{ a.decision }}</p>
 <p><strong>Cost impact:</strong> ${{ "{:,}".format(a.cost_impact_usd or 0) }}</p>
 <p><strong>Resolution:</strong> {{ a.resolution }}</p>

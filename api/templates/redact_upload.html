@@ -140,4 +140,17 @@ removed and how many — never their values.</p>
   });
 })();
 </script>
+<script>
+(function(){
+  // /redact#sample should open the sample dossier disclosure and scroll to it
+  if (window.location.hash === '#sample') {
+    var card = document.getElementById('sample');
+    if (card) {
+      var det = card.querySelector('details');
+      if (det) det.open = true;
+      setTimeout(function(){ card.scrollIntoView({block: 'start'}); }, 60);
+    }
+  }
+})();
+</script>
 {% endblock %}

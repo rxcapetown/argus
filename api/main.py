@@ -35,7 +35,7 @@ DB_PATH = os.environ.get("ARGUS_DB", str(ROOT / "argus.db"))
 API_KEY = os.environ.get("ARGUS_API_KEY", "")
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-app = FastAPI(title="Argus — Trade Exception Corpus", version="0.1.0")
+app = FastAPI(title="Argus Labs — Trade Exception Corpus", version="0.1.0")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
 
@@ -79,7 +79,9 @@ def _template_ctx(request: Request, **extra):
     ctx.update(extra)
     return ctx
 
-FOOTER = "Draft. Demo built on synthetic dossiers and public CBP rulings."
+FOOTER = ('Argus Labs · For partnerships &amp; investment: '
+          '<a href="mailto:intro@argusdatalabs.com">intro@argusdatalabs.com</a> · '
+          'Draft — demo built on synthetic dossiers and public CBP rulings.')
 
 STRIPPED_FIELDS = [
     "buyer name", "supplier name", "forwarder name",
@@ -134,6 +136,13 @@ def dossier_detail(dossier_id: int):
                WHERE v.annotation_id = ?""",
             (a["id"],),
         )
+        # documents_compared is stored as a JSON array string; render it as a list
+        raw = (a.get("documents_compared") or "").strip()
+        try:
+            parsed = json.loads(raw)
+            a["documents_compared_list"] = parsed if isinstance(parsed, list) else [str(parsed)]
+        except (json.JSONDecodeError, TypeError):
+            a["documents_compared_list"] = [s.strip() for s in raw.split(",") if s.strip()] if raw else []
     d["tax_codes"] = {r["code"]: r for r in rows("SELECT * FROM taxonomy_codes")}
     return d
 
