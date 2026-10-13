@@ -35,7 +35,7 @@ DB_PATH = os.environ.get("ARGUS_DB", str(ROOT / "argus.db"))
 API_KEY = os.environ.get("ARGUS_API_KEY", "")
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-app = FastAPI(title="Argus Labs — Trade Exception Corpus", version="0.1.0")
+app = FastAPI(title="Argus Data Labs — Trade Exception Corpus", version="0.1.0")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
 
@@ -79,7 +79,7 @@ def _template_ctx(request: Request, **extra):
     ctx.update(extra)
     return ctx
 
-FOOTER = ('Argus Labs · For partnerships &amp; investment: '
+FOOTER = ('Argus Data Labs · For partnerships &amp; investment: '
           '<a href="mailto:intro@argusdatalabs.com">intro@argusdatalabs.com</a> · '
           'Draft — demo built on synthetic dossiers and public CBP rulings.')
 
