@@ -81,7 +81,7 @@ def _template_ctx(request: Request, **extra):
 
 FOOTER = ('Argus Data Labs · For partnerships &amp; investment: '
           '<a href="mailto:intro@argusdatalabs.com">intro@argusdatalabs.com</a> · '
-          'Draft. Demo built on synthetic dossiers and public CBP rulings.')
+          'Demo built on synthetic dossiers and public CBP rulings.')
 
 STRIPPED_FIELDS = [
     "buyer name", "supplier name", "forwarder name",

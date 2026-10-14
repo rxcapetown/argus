@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Argus Data Labs: verified trade judgment, structured as AI training data{% endblock %}
+{% block title %}Verified trade judgment, structured as AI training data{% endblock %}
 {% block content %}
 <style>
 .lp-eyebrow{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:#6b6b6b;font-weight:700;margin:0 0 .8rem}
@@ -52,12 +52,14 @@ That judgment was never captured. We turn it into training data for the AI that 
 
 <p style="font-size:1.05rem;margin:0 0 .4rem"><strong>Live traction:</strong> freight forwarders in the
 US and Bangladesh have started sharing shipment documents.</p>
+<p class="lp-eyebrow" style="margin:1.8rem 0 .8rem">Demo data</p>
 <div class="lp-stats">
 <div class="lp-stat"><div class="n">{{ stats.n }}</div><div class="l">synthetic demo dossiers</div></div>
-<div class="lp-stat"><div class="n">{{ stats.verified }}</div><div class="l">verified <span class="lp-fine">(demo)</span></div></div>
+<div class="lp-stat"><div class="n">{{ stats.verified }}</div><div class="l">demo verified</div></div>
 <div class="lp-stat"><div class="n">{{ rulings }}</div><div class="l">public CBP rulings</div></div>
 <div class="lp-stat"><div class="n">{{ codes }}</div><div class="l">exception types</div></div>
 </div>
+<p class="lp-fine">Every dossier in this demo is synthetic. The rulings are U.S. public records.</p>
 
 <div class="lp-section">
 <p class="lp-eyebrow">The problem</p>
@@ -86,6 +88,18 @@ Every record carries the decision, the evidence, and the outcome, structured for
 </div>
 
 <div class="lp-section">
+<p class="lp-eyebrow">Verification</p>
+<h2>A record earns "verified" the hard way.</h2>
+<p class="standfirst">Collection is easy. Trust is the product. Every record in the corpus passes the same protocol before it counts.</p>
+<div class="lp-grid3">
+<div class="lp-card"><h3>1 · Annotate</h3><p>The contributing practitioner annotates the exception against a fixed 10-code taxonomy: the decision, the evidence, the outcome.</p></div>
+<div class="lp-card"><h3>2 · Cross-verify</h3><p>A different practitioner re-annotates the redacted dossier blind. Agreement between the two is measured on every record.</p></div>
+<div class="lp-card"><h3>3 · Spot audit</h3><p>Ten to fifteen percent of records get a central audit. Tiers are honest: Standard means attestation plus spot-check. Verified means double-verified.</p></div>
+</div>
+<p class="lp-fine" style="margin-top:1.2rem">Eval sets are held-out verified dossiers. A model is scored on whether its call matches the expert annotation, not on fluency. Verification rates are published with each corpus release.</p>
+</div>
+
+<div class="lp-section">
 <p class="lp-eyebrow">What a dossier looks like</p>
 <h2>One shipment, end to end, plus the expert's judgment.</h2>
 <p class="standfirst">All eight documents for one shipment, plus the expert's annotation on what went wrong,
@@ -104,6 +118,12 @@ Amended invoice issued 18 Mar; cargo released 20 Mar.</p>
 <p style="margin-top:1.2rem"><a href="/redact#sample" style="font-weight:700">See the full sample dossier: all eight documents and the document-to-exception map →</a></p>
 </div>
 
+<div class="lp-band">
+<h2>Building trade AI? Test it on real judgment.</h2>
+<p>Request a sample eval set: verified dossiers with held-out expert annotations, structured against our exception taxonomy. See whether your model makes the right call, not just a plausible one.</p>
+<a class="btn-ghost" href="mailto:intro@argusdatalabs.com?subject=Eval%20set%20request&body=Hi%2C%20I%27d%20like%20a%20sample%20eval%20set%20from%20the%20Trade%20Exception%20Corpus.%0A%0AName%3A%0ACompany%3A%0AUse%20case%3A">Request sample / eval set</a>
+</div>
+
 <div class="lp-section">
 <p class="lp-eyebrow">Contributing</p>
 <h2>Your documents. Your redaction. Your call.</h2>
@@ -114,12 +134,17 @@ Amended invoice issued 18 Mar; cargo released 20 Mar.</p>
 </div>
 <p class="lp-fine" style="margin-top:1.2rem">Names, addresses, contacts, B/L and container numbers never enter the corpus.
 Prices, quantities, weights, and charges stay. They're the signal.</p>
+<div class="lp-grid3" style="margin-top:1rem">
+<div class="lp-card"><h3>Who owns the data</h3><p>Under the contributor upload terms, ownership of contributed materials vests in Argus Data Labs. The terms are a draft pending counsel. Documents are used for AI training and research.</p></div>
+<div class="lp-card"><h3>How it's licensed</h3><p>Contributors upload under the contributor terms. A formal licensing framework for buyers is in development and arrives with paid licensing.</p></div>
+<div class="lp-card"><h3>Do contributors get paid</h3><p>Contributors get first priority on revenue share when paid licensing begins. Expert annotators are paid per task. No formal contracts yet: paperwork follows money.</p></div>
+</div>
 </div>
 
 <div class="lp-band">
 <h2>Your judgment is the dataset.</h2>
 <p>We're recruiting freight forwarders, customs brokers, and trade practitioners.
-If you've cleared shipments for a living, your expertise is what frontier AI is missing.</p>
+If you've cleared shipments for a living, your expertise is the judgment today's AI training data doesn't capture.</p>
 <button class="btn-ghost" data-open-expert>Become an expert contributor</button>
 </div>
 
