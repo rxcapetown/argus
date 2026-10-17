@@ -205,6 +205,12 @@ def dossier_page(request: Request, dossier_id: int):
         request, d=d, stripped=STRIPPED_FIELDS, kept=KEPT_FIELDS))
 
 
+
+
+@app.get("/eval", response_class=HTMLResponse)
+def eval_page(request: Request):
+    return templates.TemplateResponse(request, "eval.html", _template_ctx(request))
+
 @app.get("/taxonomy", response_class=HTMLResponse)
 def taxonomy_page(request: Request):
     codes = rows("SELECT * FROM taxonomy_codes ORDER BY status, code")

@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Trade exception eval{% endblock %}
+{% block content %}
+<h1>Trade exception eval</h1>
+<p>Four questions. One synthetic dossier. Your call is scored against the expert-verified annotation, not against fluency.</p>
+
+<div id="eval-app">
+  <div id="eval-intro">
+    <h2>The dossier <span class="tag">synthetic</span></h2>
+    <p><strong>Reference:</strong> SYN-D-2024-001 &nbsp;·&nbsp; <strong>Commodity:</strong> Men&rsquo;s cotton t-shirts, knit &nbsp;·&nbsp; <strong>Quantity:</strong> 20,000 units</p>
+    <p><strong>Route:</strong> Chittagong, BD &rarr; New York, US</p>
+    <p><strong>Documents in the set:</strong> commercial invoice, packing list, bill of lading, certificate of origin, export declaration, letter of credit</p>
+    <p><strong>The situation:</strong> On first presentation, the bank flagged a discrepancy. The commercial invoice prices the shirts at <strong>$4.20 per unit</strong>. The letter of credit stipulates <strong>$4.05 per unit</strong>.</p>
+    <p>Read the situation, then answer as the verifier would.</p>
+    <button id="eval-start">Start the eval</button>
+  </div>
+
+  <div id="eval-q" style="display:none">
+    <p><span class="tag" id="eval-progress">Question 1 of 4</span></p>
+    <h2 id="eval-question"></h2>
+    <div id="eval-options"></div>
+    <div id="eval-feedback" style="display:none"></div>
+    <button id="eval-next" style="display:none">Next</button>
+  </div>
+
+  <div id="eval-results" style="display:none">
+    <h2>Your score</h2>
+    <p style="font-size:2rem;font-weight:700"><span id="eval-score"></span> / 4 &nbsp;<span class="tag" id="eval-pct"></span></p>
+    <div id="eval-review"></div>
+    <h3>Benchmarks</h3>
+    <table>
+      <tr><th>Baseline</th><th>Score</th><th>What it means</th></tr>
+      <tr><td>Random guessing</td><td>25%</td><td>Picking answers at random on 4-option questions.</td></tr>
+      <tr><td><strong>You</strong></td><td id="eval-you"></td><td>Your calls against the verified annotation.</td></tr>
+      <tr><td>Expert verifier</td><td>100%</td><td>The annotation on this dossier was cross-verified, verdict confirmed.</td></tr>
+    </table>
+    <p class="lp-fine">Model benchmarks are measured on the full held-out eval set, not on this demo. If you build trade AI, run your model against the real thing.</p>
+    <p><a class="btn-ghost" href="mailto:intro@argusdatalabs.com?subject=Eval%20set%20request&body=Hi%2C%20I%27d%20like%20a%20sample%20eval%20set%20from%20the%20Trade%20Exception%20Corpus.%0A%0AName%3A%0ACompany%3A%0AUse%20case%3A">Request the full eval set</a>
+    &nbsp;<button id="eval-retry">Try again</button></p>
+    <p><a href="/taxonomy">Browse the 10-code exception taxonomy</a></p>
+  </div>
+</div>
+
+<script>
+const QUESTIONS = [
+  {
+    q: "The invoice says $4.20 per unit. The letter of credit says $4.05. The bank flags it on first presentation. Which exception code does the Argus taxonomy assign?",
+    options: ["VALUE_MISMATCH", "QUANTITY_VARIANCE", "HS_MISCLASSIFICATION", "DOC_INCONSISTENCY"],
+    correct: 0,
+    explain: "Value mismatch. The taxonomy defines it as declared value differing across documents, compared over commercial invoice and letter of credit."
+  },
+  {
+    q: "The shipment is 20,000 units and the per-unit gap is $0.15. What is the total value at stake?",
+    options: ["$3,000", "$300", "$30,000", "$1,500"],
+    correct: 0,
+    explain: "The verifier's arithmetic on the record: 20,000 x $0.15 = $3,000. That figure is the cost_impact_usd on the verified annotation."
+  },
+  {
+    q: "How was the discrepancy resolved?",
+    options: [
+      "Seller issued a credit note for the $0.15/unit difference; documents accepted on second presentation",
+      "Buyer accepted the higher price and amended the letter of credit",
+      "The shipment was held until the seller reissued the invoice at $4.05",
+      "The bank waived the discrepancy and paid on first presentation"
+    ],
+    correct: 0,
+    explain: "Per the verified annotation: the seller issued a credit note for the difference and the documents were accepted on second presentation."
+  },
+  {
+    q: "Which two documents must be compared to catch this exception?",
+    options: [
+      "Commercial invoice and letter of credit",
+      "Packing list and bill of lading",
+      "Certificate of origin and export declaration",
+      "Bill of lading and insurance certificate"
+    ],
+    correct: 0,
+    explain: "The taxonomy's documents_compared for VALUE_MISMATCH is commercial invoice and letter of credit. Compare anything else and this one sails through."
+  }
+];
+
+let qi = 0, score = 0;
+const results = [];
+
+function renderQ() {
+  const Q = QUESTIONS[qi];
+  document.getElementById("eval-progress").textContent = "Question " + (qi + 1) + " of " + QUESTIONS.length;
+  document.getElementById("eval-question").textContent = Q.q;
+  const box = document.getElementById("eval-options");
+  box.innerHTML = "";
+  document.getElementById("eval-feedback").style.display = "none";
+  document.getElementById("eval-next").style.display = "none";
+  Q.options.forEach((opt, i) => {
+    const b = document.createElement("button");
+    b.textContent = opt;
+    b.style.display = "block";
+    b.style.margin = "0.4rem 0";
+    b.style.textAlign = "left";
+    b.onclick = () => answer(i);
+    box.appendChild(b);
+  });
+}
+
+function answer(i) {
+  const Q = QUESTIONS[qi];
+  const ok = (i === Q.correct);
+  if (ok) score++;
+  results.push({q: Q.q, picked: Q.options[i], right: Q.options[Q.correct], ok: ok, explain: Q.explain});
+  const opts = document.getElementById("eval-options").children;
+  for (let k = 0; k < opts.length; k++) {
+    opts[k].disabled = true;
+    if (k === Q.correct) opts[k].style.background = "#1a7a3a";
+    else if (k === i) opts[k].style.background = "#a33";
+  }
+  const fb = document.getElementById("eval-feedback");
+  fb.innerHTML = "<p><strong>" + (ok ? "Correct." : "Not quite.") + "</strong> " + Q.explain + "</p>";
+  fb.style.display = "block";
+  const nx = document.getElementById("eval-next");
+  nx.textContent = (qi === QUESTIONS.length - 1) ? "See your score" : "Next";
+  nx.style.display = "inline-block";
+}
+
+function showResults() {
+  document.getElementById("eval-q").style.display = "none";
+  document.getElementById("eval-results").style.display = "block";
+  document.getElementById("eval-score").textContent = score;
+  const pct = Math.round(score / QUESTIONS.length * 100);
+  document.getElementById("eval-pct").textContent = pct + "%";
+  document.getElementById("eval-you").innerHTML = "<strong>" + pct + "%</strong>";
+  const rev = document.getElementById("eval-review");
+  rev.innerHTML = "";
+  results.forEach((r, i) => {
+    const d = document.createElement("div");
+    d.innerHTML = "<p><strong>Q" + (i + 1) + ":</strong> " + (r.ok ? "correct" : "missed") +
+      " &mdash; you picked &ldquo;" + r.picked + "&rdquo;" +
+      (r.ok ? "" : "; the verified call was &ldquo;" + r.right + "&rdquo;") + "</p>";
+    rev.appendChild(d);
+  });
+}
+
+document.getElementById("eval-start").onclick = () => {
+  document.getElementById("eval-intro").style.display = "none";
+  document.getElementById("eval-q").style.display = "block";
+  qi = 0; score = 0; results.length = 0;
+  renderQ();
+};
+document.getElementById("eval-next").onclick = () => {
+  qi++;
+  if (qi < QUESTIONS.length) renderQ();
+  else showResults();
+};
+document.getElementById("eval-retry").onclick = () => {
+  document.getElementById("eval-results").style.display = "none";
+  document.getElementById("eval-intro").style.display = "block";
+};
+</script>
+{% endblock %}
