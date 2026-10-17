@@ -2,21 +2,27 @@
 {% block title %}Trade exception eval{% endblock %}
 {% block content %}
 <h1>Trade exception eval</h1>
-<p>Four questions. One synthetic dossier. Your call is scored against the expert-verified annotation, not against fluency.</p>
+<p>Graded cases from synthetic dossiers. Your call is scored against the expert-verified annotation, not against fluency.</p>
 
 <div id="eval-app">
-  <div id="eval-intro">
-    <h2>The dossier <span class="tag">synthetic</span></h2>
-    <p><strong>Reference:</strong> SYN-D-2024-001 &nbsp;·&nbsp; <strong>Commodity:</strong> Men&rsquo;s cotton t-shirts, knit &nbsp;·&nbsp; <strong>Quantity:</strong> 20,000 units</p>
-    <p><strong>Route:</strong> Chittagong, BD &rarr; New York, US</p>
-    <p><strong>Documents in the set:</strong> commercial invoice, packing list, bill of lading, certificate of origin, export declaration, letter of credit</p>
-    <p><strong>The situation:</strong> On first presentation, the bank flagged a discrepancy. The commercial invoice prices the shirts at <strong>$4.20 per unit</strong>. The letter of credit stipulates <strong>$4.05 per unit</strong>.</p>
+  <div id="eval-picker">
+    <h2>Pick a case <span class="tag">all synthetic</span></h2>
+    <div id="eval-cards"></div>
+  </div>
+
+  <div id="eval-intro" style="display:none">
+    <p><a href="#" id="eval-back1">&larr; All cases</a></p>
+    <h2 id="eval-case-title"></h2>
+    <p><strong>Reference:</strong> <span id="eval-ref"></span> <span class="tag">synthetic</span></p>
+    <p><strong>Commodity:</strong> <span id="eval-commodity"></span> &nbsp;·&nbsp; <strong>Route:</strong> <span id="eval-route"></span></p>
+    <p><strong>Documents in the set:</strong> <span id="eval-docs"></span></p>
+    <p><strong>The situation:</strong> <span id="eval-situation"></span></p>
     <p>Read the situation, then answer as the verifier would.</p>
     <button id="eval-start">Start the eval</button>
   </div>
 
   <div id="eval-q" style="display:none">
-    <p><span class="tag" id="eval-progress">Question 1 of 4</span></p>
+    <p><span class="tag" id="eval-progress">Question 1 of 4</span> &nbsp; <span class="tag" id="eval-case-tag"></span></p>
     <h2 id="eval-question"></h2>
     <div id="eval-options"></div>
     <div id="eval-feedback" style="display:none"></div>
@@ -34,57 +40,215 @@
       <tr><td><strong>You</strong></td><td id="eval-you"></td><td>Your calls against the verified annotation.</td></tr>
       <tr><td>Expert verifier</td><td>100%</td><td>The annotation on this dossier was cross-verified, verdict confirmed.</td></tr>
     </table>
-    <p class="lp-fine">Model benchmarks are measured on the full held-out eval set, not on this demo. If you build trade AI, run your model against the real thing.</p>
-    <p><a class="btn-ghost" href="mailto:intro@argusdatalabs.com?subject=Eval%20set%20request&body=Hi%2C%20I%27d%20like%20a%20sample%20eval%20set%20from%20the%20Trade%20Exception%20Corpus.%0A%0AName%3A%0ACompany%3A%0AUse%20case%3A">Request the full eval set</a>
-    &nbsp;<button id="eval-retry">Try again</button></p>
+    <p>
+      <a class="btn-ghost" id="eval-share-li" href="#" target="_blank" rel="noopener">Share on LinkedIn</a>
+      &nbsp;<button id="eval-copy">Copy my score</button>
+      <span id="eval-copied" class="tag" style="display:none">copied</span>
+    </p>
+    <h3>New evals</h3>
+    <p>We add cases as verifiers clear them. Leave your email and we will tell you when the next one drops.</p>
+    <p>
+      <input type="email" id="eval-email" placeholder="you@company.com" style="padding:.45rem .7rem;font-size:.9rem;max-width:260px">
+      <button id="eval-notify">Notify me</button>
+      <span id="eval-notify-ok" class="tag" style="display:none">you are on the list</span>
+    </p>
+    <p><a class="btn-ghost" href="mailto:intro@argusdatalabs.com?subject=Eval%20set%20request&body=Hi%2C%20I%27d%20like%20a%20sample%20eval%20set%20from%20the%20Trade%20Exception%20Corpus.%0A%0AName%3A%0ACompany%3A%0AUse%20case%3A">Request the full eval set for your model</a>
+    &nbsp;<button id="eval-retry">Try another case</button></p>
     <p><a href="/taxonomy">Browse the 10-code exception taxonomy</a></p>
   </div>
 </div>
 
 <script>
-const QUESTIONS = [
+const DOSSIERS = [
   {
-    q: "The invoice says $4.20 per unit. The letter of credit says $4.05. The bank flags it on first presentation. Which exception code does the Argus taxonomy assign?",
-    options: ["VALUE_MISMATCH", "QUANTITY_VARIANCE", "HS_MISCLASSIFICATION", "DOC_INCONSISTENCY"],
-    correct: 0,
-    explain: "Value mismatch. The taxonomy defines it as declared value differing across documents, compared over commercial invoice and letter of credit."
+    id: "SYN-D-2024-001",
+    title: "The $0.15 gap",
+    commodity: "Men's cotton t-shirts, knit, 20,000 units",
+    route: "Chittagong, BD \u2192 New York, US",
+    docs: "commercial invoice, packing list, bill of lading, certificate of origin, export declaration, letter of credit",
+    situation: "On first presentation, the bank flagged a discrepancy. The commercial invoice prices the shirts at $4.20 per unit. The letter of credit stipulates $4.05 per unit.",
+    questions: [
+      {
+        q: "The invoice says $4.20 per unit. The letter of credit says $4.05. The bank flags it on first presentation. Which exception code does the Argus taxonomy assign?",
+        options: ["VALUE_MISMATCH", "QUANTITY_VARIANCE", "HS_MISCLASSIFICATION", "DOC_INCONSISTENCY"],
+        correct: 0,
+        explain: "Value mismatch. The taxonomy defines it as declared value differing across documents, compared over commercial invoice and letter of credit."
+      },
+      {
+        q: "The shipment is 20,000 units and the per-unit gap is $0.15. What is the total value at stake?",
+        options: ["$3,000", "$300", "$30,000", "$1,500"],
+        correct: 0,
+        explain: "The verifier's arithmetic on the record: 20,000 x $0.15 = $3,000. That figure is the cost_impact_usd on the verified annotation."
+      },
+      {
+        q: "How was the discrepancy resolved?",
+        options: [
+          "Seller issued a credit note for the $0.15/unit difference; documents accepted on second presentation",
+          "Buyer accepted the higher price and amended the letter of credit",
+          "The shipment was held until the seller reissued the invoice at $4.05",
+          "The bank waived the discrepancy and paid on first presentation"
+        ],
+        correct: 0,
+        explain: "Per the verified annotation: the seller issued a credit note for the difference and the documents were accepted on second presentation."
+      },
+      {
+        q: "Which two documents must be compared to catch this exception?",
+        options: [
+          "Commercial invoice and letter of credit",
+          "Packing list and bill of lading",
+          "Certificate of origin and export declaration",
+          "Bill of lading and insurance certificate"
+        ],
+        correct: 0,
+        explain: "The taxonomy's documents_compared for VALUE_MISMATCH is commercial invoice and letter of credit. Compare anything else and this one sails through."
+      }
+    ]
   },
   {
-    q: "The shipment is 20,000 units and the per-unit gap is $0.15. What is the total value at stake?",
-    options: ["$3,000", "$300", "$30,000", "$1,500"],
-    correct: 0,
-    explain: "The verifier's arithmetic on the record: 20,000 x $0.15 = $3,000. That figure is the cost_impact_usd on the verified annotation."
+    id: "SYN-D-2024-002",
+    title: "The missing cartons",
+    commodity: "Women's woven cotton trousers, 12,400 pcs",
+    route: "Chittagong, BD \u2192 Rotterdam, NL",
+    docs: "commercial invoice, packing list, bill of lading, certificate of origin",
+    situation: "The packing list shows 12,400 pieces across 310 cartons. The bill of lading manifests 12,000 pieces in 300 cartons. 400 pieces never made it onto the vessel. Unit price is $9.00.",
+    questions: [
+      {
+        q: "The packing list says 12,400 pieces. The bill of lading says 12,000. Which exception code does the Argus taxonomy assign?",
+        options: ["QUANTITY_VARIANCE", "WEIGHT_DISCREPANCY", "DOC_INCONSISTENCY", "VALUE_MISMATCH"],
+        correct: 0,
+        explain: "Quantity variance. The taxonomy defines it as shipped quantity differing between packing list, bill of lading, or invoice."
+      },
+      {
+        q: "400 pieces are missing at $9.00 per unit. What is the value of the short shipment?",
+        options: ["$3,600", "$360", "$36,000", "$4,300"],
+        correct: 0,
+        explain: "400 x $9.00 = $3,600, the cost_impact_usd on the verified annotation. The verifier also checked the carton math: 10 cartons x 40 pieces missing."
+      },
+      {
+        q: "How was the short shipment resolved?",
+        options: [
+          "Short shipment acknowledged; buyer accepted the balance with a 3% discount on the missing units",
+          "The seller re-shipped the 400 missing pieces by air freight",
+          "The buyer rejected the entire shipment at Rotterdam",
+          "The carrier paid the full invoice value for the missing pieces"
+        ],
+        correct: 0,
+        explain: "Per the verified annotation: the short shipment was acknowledged and the buyer accepted the balance with a 3% discount on the missing units."
+      },
+      {
+        q: "Which two documents must be compared to catch this exception?",
+        options: [
+          "Packing list and bill of lading",
+          "Commercial invoice and letter of credit",
+          "Certificate of origin and export declaration",
+          "Bill of lading and insurance certificate"
+        ],
+        correct: 0,
+        explain: "The taxonomy's documents_compared for QUANTITY_VARIANCE is packing list, bill of lading, and commercial invoice. The gap here sits between the first two."
+      }
+    ]
   },
   {
-    q: "How was the discrepancy resolved?",
-    options: [
-      "Seller issued a credit note for the $0.15/unit difference; documents accepted on second presentation",
-      "Buyer accepted the higher price and amended the letter of credit",
-      "The shipment was held until the seller reissued the invoice at $4.05",
-      "The bank waived the discrepancy and paid on first presentation"
-    ],
-    correct: 0,
-    explain: "Per the verified annotation: the seller issued a credit note for the difference and the documents were accepted on second presentation."
-  },
-  {
-    q: "Which two documents must be compared to catch this exception?",
-    options: [
-      "Commercial invoice and letter of credit",
-      "Packing list and bill of lading",
-      "Certificate of origin and export declaration",
-      "Bill of lading and insurance certificate"
-    ],
-    correct: 0,
-    explain: "The taxonomy's documents_compared for VALUE_MISMATCH is commercial invoice and letter of credit. Compare anything else and this one sails through."
+    id: "SYN-D-2025-003",
+    title: "Knit or woven?",
+    commodity: "Girls' knit-overlay woven dresses, 9,000 units",
+    route: "Chittagong, BD \u2192 Felixstowe, UK",
+    docs: "commercial invoice, packing list, bill of lading, export declaration",
+    situation: "The dresses have a knit overlay on a woven skirt. They were declared as 6104.42 (knit dresses) based on the overlay. The verifier says the essential character is the woven skirt, so the correct code is 6204.43.",
+    questions: [
+      {
+        q: "The dress was declared under 6104.42 but the correct code is 6204.43. Which exception code does the Argus taxonomy assign?",
+        options: ["HS_MISCLASSIFICATION", "COO_DEFECT", "VALUE_MISMATCH", "DOC_INCONSISTENCY"],
+        correct: 0,
+        explain: "HS misclassification. The taxonomy defines it as the wrong tariff code declared for the commodity, compared over commercial invoice and export declaration."
+      },
+      {
+        q: "Why is 6204.43 the right call?",
+        options: [
+          "Under GRI 3(c), the essential character comes from the woven skirt, not the knit overlay",
+          "Knit fabric always takes classification precedence over woven fabric",
+          "The higher-duty code must be used whenever two codes could apply",
+          "The exporter's original declaration is final once filed"
+        ],
+        correct: 0,
+        explain: "The verifier's note on the record: this matches CBP GRI 3(c) reasoning for knit/woven composite garments. Essential character decides."
+      },
+      {
+        q: "How was the misclassification resolved?",
+        options: [
+          "Reclassified prior to export; duty differential paid, no penalty",
+          "The shipment was seized at origin and the exporter was fined",
+          "The goods were re-exported to origin for re-labeling",
+          "Entry was filed as-is and a protest was lodged after clearance"
+        ],
+        correct: 0,
+        explain: "Per the verified annotation: reclassified before export, the duty differential was paid, and no penalty was assessed."
+      },
+      {
+        q: "Which two documents must be compared to catch this exception?",
+        options: [
+          "Commercial invoice and export declaration",
+          "Packing list and bill of lading",
+          "Certificate of origin and letter of credit",
+          "Bill of lading and insurance certificate"
+        ],
+        correct: 0,
+        explain: "The taxonomy's documents_compared for HS_MISCLASSIFICATION is commercial invoice and export declaration."
+      }
+    ]
   }
 ];
 
-let qi = 0, score = 0;
+let di = 0, qi = 0, score = 0;
 const results = [];
 
+function best() {
+  try { return JSON.parse(localStorage.getItem("argus-eval-best") || "{}"); }
+  catch (e) { return {}; }
+}
+function saveBest(id, s) {
+  const b = best();
+  if (s > (b[id] || -1)) { b[id] = s; localStorage.setItem("argus-eval-best", JSON.stringify(b)); }
+}
+
+function showPicker() {
+  ["eval-intro", "eval-q", "eval-results"].forEach(id => document.getElementById(id).style.display = "none");
+  document.getElementById("eval-picker").style.display = "block";
+  const b = best();
+  const box = document.getElementById("eval-cards");
+  box.innerHTML = "";
+  DOSSIERS.forEach((d, i) => {
+    const card = document.createElement("div");
+    card.style.cssText = "border:1px solid #ddd;border-radius:6px;padding:1rem;margin:0.6rem 0;";
+    const bs = (b[d.id] !== undefined) ? " <span class='tag'>best: " + b[d.id] + "/4</span>" : "";
+    card.innerHTML = "<h3 style='margin-top:0'>" + d.title + "</h3>" +
+      "<p>" + d.commodity + " &middot; " + d.route + "</p>" +
+      "<p><span class='tag'>" + d.questions[0].options[d.questions[0].correct] + "</span>" + bs + "</p>";
+    const btn = document.createElement("button");
+    btn.textContent = "Take this case";
+    btn.onclick = () => startCase(i);
+    card.appendChild(btn);
+    box.appendChild(card);
+  });
+}
+
+function startCase(i) {
+  di = i;
+  const d = DOSSIERS[di];
+  document.getElementById("eval-picker").style.display = "none";
+  document.getElementById("eval-intro").style.display = "block";
+  document.getElementById("eval-case-title").textContent = d.title;
+  document.getElementById("eval-ref").textContent = d.id;
+  document.getElementById("eval-commodity").textContent = d.commodity;
+  document.getElementById("eval-route").textContent = d.route;
+  document.getElementById("eval-docs").textContent = d.docs;
+  document.getElementById("eval-situation").textContent = d.situation;
+}
+
 function renderQ() {
-  const Q = QUESTIONS[qi];
-  document.getElementById("eval-progress").textContent = "Question " + (qi + 1) + " of " + QUESTIONS.length;
+  const d = DOSSIERS[di], Q = d.questions[qi];
+  document.getElementById("eval-progress").textContent = "Question " + (qi + 1) + " of " + d.questions.length;
+  document.getElementById("eval-case-tag").textContent = d.title;
   document.getElementById("eval-question").textContent = Q.q;
   const box = document.getElementById("eval-options");
   box.innerHTML = "";
@@ -102,7 +266,7 @@ function renderQ() {
 }
 
 function answer(i) {
-  const Q = QUESTIONS[qi];
+  const d = DOSSIERS[di], Q = d.questions[qi];
   const ok = (i === Q.correct);
   if (ok) score++;
   results.push({q: Q.q, picked: Q.options[i], right: Q.options[Q.correct], ok: ok, explain: Q.explain});
@@ -116,26 +280,38 @@ function answer(i) {
   fb.innerHTML = "<p><strong>" + (ok ? "Correct." : "Not quite.") + "</strong> " + Q.explain + "</p>";
   fb.style.display = "block";
   const nx = document.getElementById("eval-next");
-  nx.textContent = (qi === QUESTIONS.length - 1) ? "See your score" : "Next";
+  nx.textContent = (qi === d.questions.length - 1) ? "See your score" : "Next";
   nx.style.display = "inline-block";
 }
 
 function showResults() {
+  const d = DOSSIERS[di];
+  saveBest(d.id, score);
   document.getElementById("eval-q").style.display = "none";
   document.getElementById("eval-results").style.display = "block";
   document.getElementById("eval-score").textContent = score;
-  const pct = Math.round(score / QUESTIONS.length * 100);
+  const pct = Math.round(score / d.questions.length * 100);
   document.getElementById("eval-pct").textContent = pct + "%";
   document.getElementById("eval-you").innerHTML = "<strong>" + pct + "%</strong>";
   const rev = document.getElementById("eval-review");
   rev.innerHTML = "";
   results.forEach((r, i) => {
-    const d = document.createElement("div");
-    d.innerHTML = "<p><strong>Q" + (i + 1) + ":</strong> " + (r.ok ? "correct" : "missed") +
+    const p = document.createElement("p");
+    p.innerHTML = "<strong>Q" + (i + 1) + ":</strong> " + (r.ok ? "correct" : "missed") +
       " &mdash; you picked &ldquo;" + r.picked + "&rdquo;" +
-      (r.ok ? "" : "; the verified call was &ldquo;" + r.right + "&rdquo;") + "</p>";
-    rev.appendChild(d);
+      (r.ok ? "" : "; the verified call was &ldquo;" + r.right + "&rdquo;");
+    rev.appendChild(p);
   });
+  const shareText = "I scored " + score + "/4 on the Argus Data Labs trade exception eval (" + d.title + "). Expert-verified trade judgment, graded against the annotation.";
+  document.getElementById("eval-share-li").href =
+    "https://www.linkedin.com/sharing/share-offsite/?url=" + encodeURIComponent("https://www.argusdatalabs.com/eval");
+  document.getElementById("eval-copy").onclick = () => {
+    navigator.clipboard.writeText(shareText + " https://www.argusdatalabs.com/eval").then(() => {
+      document.getElementById("eval-copied").style.display = "inline-block";
+      setTimeout(() => document.getElementById("eval-copied").style.display = "none", 2000);
+    });
+  };
+  document.getElementById("eval-notify-ok").style.display = "none";
 }
 
 document.getElementById("eval-start").onclick = () => {
@@ -146,12 +322,21 @@ document.getElementById("eval-start").onclick = () => {
 };
 document.getElementById("eval-next").onclick = () => {
   qi++;
-  if (qi < QUESTIONS.length) renderQ();
+  if (qi < DOSSIERS[di].questions.length) renderQ();
   else showResults();
 };
-document.getElementById("eval-retry").onclick = () => {
-  document.getElementById("eval-results").style.display = "none";
-  document.getElementById("eval-intro").style.display = "block";
+document.getElementById("eval-retry").onclick = showPicker;
+document.getElementById("eval-back1").onclick = (e) => { e.preventDefault(); showPicker(); };
+document.getElementById("eval-notify").onclick = () => {
+  const em = document.getElementById("eval-email").value.trim();
+  if (!em || em.indexOf("@") < 0) { document.getElementById("eval-email").focus(); return; }
+  const fd = new FormData();
+  fd.append("email", em);
+  fetch("/api/eval-notify", {method: "POST", body: fd})
+    .then(r => { if (!r.ok) throw new Error(); document.getElementById("eval-notify-ok").style.display = "inline-block"; document.getElementById("eval-email").value = ""; })
+    .catch(() => { document.getElementById("eval-email").focus(); });
 };
+
+showPicker();
 </script>
 {% endblock %}

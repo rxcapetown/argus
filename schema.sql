@@ -136,6 +136,13 @@ CREATE TABLE IF NOT EXISTS expert_leads (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS eval_notify (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    email      TEXT NOT NULL UNIQUE,
+    source     TEXT NOT NULL DEFAULT 'eval',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS shipments (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     shipment_ref     TEXT NOT NULL,

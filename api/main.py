@@ -867,6 +867,28 @@ def shipment_attach(request: Request,
     return RedirectResponse(f"/shipments/{sid}", status_code=303)
 
 
+
+
+@app.post("/api/eval-notify")
+def api_eval_notify(email: str = Form(...)):
+    """Public email capture for new eval case notifications. No auth: same openness as the demo."""
+    email = email.strip().lower()
+    if "@" not in email or "." not in email.rsplit("@", 1)[-1]:
+        raise HTTPException(400, "valid email required")
+    con = db()
+    try:
+        con.execute(
+            """CREATE TABLE IF NOT EXISTS eval_notify (
+                   id INTEGER PRIMARY KEY AUTOINCREMENT,
+                   email TEXT NOT NULL UNIQUE,
+                   created_at TEXT NOT NULL DEFAULT (datetime('now')))"""
+        )
+        con.execute("INSERT OR IGNORE INTO eval_notify (email) VALUES (?)", (email,))
+        con.commit()
+    finally:
+        con.close()
+    return {"ok": True}
+
 @app.post("/api/expert-leads")
 def api_expert_lead(
     _auth: bool = Depends(require_api_key),
