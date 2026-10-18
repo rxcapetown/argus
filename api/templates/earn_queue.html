@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Paid dossier queue{% endblock %}
+{% block content %}
+<h1>Paid dossier queue</h1>
+<p><strong>{{ remaining }} of {{ cap }} paid slots remaining.</strong> A slot is claimed when a dossier passes verification. Statuses update as dossiers move through redaction, annotation, and cross-verification.</p>
+
+<table>
+<tr><th>Dossier</th><th>Contributor</th><th>Status</th><th>Registered</th><th>Verified</th><th>Paid</th></tr>
+{% for p in paid %}
+<tr>
+<td>{{ p.dossier_ref or "—" }}</td>
+<td>{{ p.contributor_code }}</td>
+<td><span class="tag">{{ p.status }}</span></td>
+<td>{{ p.registered_at[:10] }}</td>
+<td>{{ p.verified_at[:10] if p.verified_at else "—" }}</td>
+<td>{{ "yes" if p.paid_at else "—" }}</td>
+</tr>
+{% endfor %}
+</table>
+{% if not paid %}<p>No registrations yet. <a href="/earn">Be the first.</a></p>{% endif %}
+
+<h2>What the statuses mean</h2>
+<div class="card">
+<ul>
+<li><strong>registered</strong>: signed up, documents not yet received</li>
+<li><strong>documents_received</strong>: shipment documents in hand</li>
+<li><strong>redacted</strong>: PII stripped, contributor approved the redaction</li>
+<li><strong>annotated</strong>: exception annotation submitted</li>
+<li><strong>in_verification</strong>: a different forwarder is cross-checking</li>
+<li><strong>verified</strong>: passed. $1,000 due within 14 days. Slot claimed.</li>
+<li><strong>paid</strong>: money sent</li>
+<li><strong>rejected</strong>: failed verification twice. Slot returns to the pool.</li>
+</ul>
+</div>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Earn $1,000 per verified dossier{% endblock %}
+{% block content %}
+<h1>Get paid for your trade documents</h1>
+<p style="font-size:1.15rem">Argus Data Labs pays <strong>$1,000</strong> for every shipment dossier that passes verification. First <strong>15 verified dossiers</strong>. <span id="slots-line">Checking slots…</span></p>
+
+<div class="card" style="border:2px solid #1a1a1a">
+<h2>How it works</h2>
+<ol>
+<li><strong>Register below.</strong> You get a contributor code. Accept the paid terms (short, plain language).</li>
+<li><strong>Send your documents.</strong> One complete shipment: commercial invoice, packing list, and bill of lading or airway bill at minimum. Upload here or email them. You review the redaction before anything is final.</li>
+<li><strong>Annotate.</strong> Mark any exception against our fixed taxonomy (wrong HS code, value mismatch, quantity variance, and so on). No exception? That counts too.</li>
+<li><strong>Verification.</strong> A different forwarder cross-checks your annotation. This is the step that releases payment.</li>
+<li><strong>Paid.</strong> $1,000 within 14 days of passing verification.</li>
+</ol>
+</div>
+
+<div class="panel">
+<div class="card">
+<h2>What counts as verified</h2>
+<ul>
+<li>Complete document set for one shipment</li>
+<li>Your annotation against the exception taxonomy</li>
+<li>Confirmed cross-verification by a different forwarder</li>
+</ul>
+<p>If verification fails, you can fix and resubmit once.</p>
+</div>
+<div class="card">
+<h2>Your data, your control</h2>
+<ul>
+<li>You review every redaction before it is final</li>
+<li>Names, addresses, and account numbers are stripped</li>
+<li>Values and prices stay in: that is the signal</li>
+<li>Only the redacted version enters the corpus</li>
+</ul>
+</div>
+</div>
+
+<h2>Register</h2>
+<div class="card">
+<form id="earn-form">
+<p><label>Full name<br><input name="signer_name" required style="width:100%;max-width:24rem"></label></p>
+<p><label>Company / firm<br><input name="signer_firm" required style="width:100%;max-width:24rem"></label></p>
+<p><label>Email<br><input name="email" type="email" required style="width:100%;max-width:24rem"></label></p>
+<p><label>Phone (optional)<br><input name="phone" style="width:100%;max-width:24rem"></label></p>
+<div style="background:#f4f4f4;border-radius:6px;padding:.8rem;margin:.8rem 0;max-height:12rem;overflow-y:auto">
+<p><strong>{{ paid_terms_title }}</strong> <span class="tag">{{ paid_terms_version }}</span></p>
+{% for p in paid_terms_paragraphs %}<p style="font-size:.85rem">{{ p }}</p>{% endfor %}
+</div>
+<p><label><input type="checkbox" id="paid-terms-check" required> I accept the paid dossier terms above.</label></p>
+<p><button type="submit">Register for the $1,000 dossier program</button></p>
+</form>
+<div id="earn-done" style="display:none">
+<h3>Registered.</h3>
+<p>Your contributor code: <strong id="earn-code" style="font-size:1.3rem"></strong></p>
+<p>Keep this code. Use it when you upload documents so your dossier links to your payout. Next: send your shipment documents via <a href="/redact">the upload page</a> using the same company name and email.</p>
+</div>
+<div id="earn-error" style="display:none;color:#a00"></div>
+</div>
+
+<h2>Questions</h2>
+<div class="card">
+<p><strong>When do I get paid?</strong><br>Within 14 days after your dossier passes verification. Verification means a complete document set, your annotation, and a confirmed cross-check by a different forwarder.</p>
+<p><strong>What if my dossier fails verification?</strong><br>You get one fix-and-resubmit. After that the slot goes back to the pool.</p>
+<p><strong>How do I receive the money?</strong><br>We arrange it directly with you after verification: bank transfer or Zelle for US contributors, wire for others.</p>
+<p><strong>Who sees my documents?</strong><br>Only the redacted version is shared with the cross-verifier. Your company name never appears in the corpus.</p>
+<p><strong>Why only 15?</strong><br>This is a paid pilot to price real acquisition cost. Contributors in the pilot get first priority when paid licensing begins.</p>
+</div>
+
+<script>
+fetch("/api/earn/slots").then(r=>r.json()).then(d=>{
+  document.getElementById("slots-line").innerHTML =
+    "<strong>"+d.remaining+" of "+d.cap+" paid slots remaining.</strong>";
+}).catch(()=>{document.getElementById("slots-line").textContent="";});
+
+document.getElementById("earn-form").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const err=document.getElementById("earn-error"); err.style.display="none";
+  if(!document.getElementById("paid-terms-check").checked){err.textContent="Please accept the terms.";err.style.display="block";return;}
+  const fd=new FormData(e.target);
+  fd.append("terms_accepted","1");
+  try{
+    const r=await fetch("/api/earn/register",{method:"POST",body:fd});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.detail||"Registration failed.");
+    document.getElementById("earn-form").style.display="none";
+    document.getElementById("earn-code").textContent=d.contributor_code;
+    document.getElementById("earn-done").style.display="block";
+  }catch(ex){err.textContent=ex.message;err.style.display="block";}
+});
+</script>
+{% endblock %}

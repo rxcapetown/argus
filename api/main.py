@@ -23,6 +23,8 @@ import pymupdf  # PyMuPDF, redaction flow
 from redact.detect import Finding, detect as detect_entities
 from redact.engine import apply_redactions, audit_log, extract_text, render_preview
 from redact.classify import DOC_TYPES, classify_document
+from redact.paid_terms import (PAID_TERMS_PARAGRAPHS, PAID_TERMS_TITLE,
+                             PAID_TERMS_VERSION)
 from redact.terms import (TERMS_PARAGRAPHS, TERMS_TITLE, TERMS_VERSION,
                           terms_sha256)
 
@@ -888,6 +890,155 @@ def api_eval_notify(email: str = Form(...)):
     finally:
         con.close()
     return {"ok": True}
+
+# ---------- paid dossier experiment: $1,000 per verified dossier, first 15 ----------
+PAID_CAP = 15
+PAID_PAYOUT_USD = 1000.0
+PAID_STATUSES = ("registered", "documents_received", "redacted", "annotated",
+                 "in_verification", "verified", "paid", "rejected")
+
+
+def _paid_slots(con) -> tuple[int, int, int]:
+    """(cap, claimed, remaining). A slot is claimed when a dossier is verified or paid."""
+    claimed = con.execute(
+        "SELECT COUNT(*) FROM paid_dossiers WHERE status IN ('verified','paid')"
+    ).fetchone()[0]
+    return PAID_CAP, claimed, max(0, PAID_CAP - claimed)
+
+
+def _ensure_paid_table(con):
+    con.execute(
+        """CREATE TABLE IF NOT EXISTS paid_dossiers (
+               id INTEGER PRIMARY KEY AUTOINCREMENT,
+               contributor_id INTEGER NOT NULL REFERENCES contributors(id),
+               dossier_id INTEGER REFERENCES dossiers(id),
+               status TEXT NOT NULL DEFAULT 'registered',
+               payout_usd REAL NOT NULL DEFAULT 1000,
+               agreement_version TEXT,
+               registered_at TEXT NOT NULL DEFAULT (datetime('now')),
+               verified_at TEXT,
+               paid_at TEXT,
+               notes TEXT)"""
+    )
+
+
+@app.get("/earn", response_class=HTMLResponse)
+def earn_page(request: Request):
+    return templates.TemplateResponse(request, "earn.html", _template_ctx(
+        request, paid_terms_title=PAID_TERMS_TITLE,
+        paid_terms_version=PAID_TERMS_VERSION,
+        paid_terms_paragraphs=PAID_TERMS_PARAGRAPHS))
+
+
+@app.get("/earn/queue", response_class=HTMLResponse)
+def earn_queue(request: Request):
+    con = db()
+    try:
+        _ensure_paid_table(con)
+        cap, claimed, remaining = _paid_slots(con)
+        paid = rows(
+            """SELECT p.id, p.status, p.payout_usd, p.registered_at, p.verified_at,
+                      p.paid_at, c.contributor_code, d.reference AS dossier_ref
+               FROM paid_dossiers p
+               JOIN contributors c ON c.id = p.contributor_id
+               LEFT JOIN dossiers d ON d.id = p.dossier_id
+               ORDER BY p.registered_at DESC""")
+    finally:
+        con.close()
+    return templates.TemplateResponse(request, "earn_queue.html", _template_ctx(
+        request, paid=paid, cap=cap, claimed=claimed, remaining=remaining))
+
+
+@app.get("/api/earn/slots")
+def api_earn_slots():
+    con = db()
+    try:
+        _ensure_paid_table(con)
+        cap, claimed, remaining = _paid_slots(con)
+    finally:
+        con.close()
+    return {"cap": cap, "claimed": claimed, "remaining": remaining}
+
+
+@app.post("/api/earn/register")
+def api_earn_register(
+    signer_name: str = Form(...),
+    signer_firm: str = Form(...),
+    email: str = Form(...),
+    phone: str = Form(""),
+    terms_accepted: str = Form(""),
+):
+    """Register a forwarder for the paid dossier program. Open: same as the demo."""
+    if terms_accepted != "1":
+        raise HTTPException(400, "paid terms must be accepted")
+    email = email.strip().lower()
+    if "@" not in email:
+        raise HTTPException(400, "valid email required")
+    con = db()
+    try:
+        _ensure_paid_table(con)
+        _, _, remaining = _paid_slots(con)
+        if remaining <= 0:
+            raise HTTPException(400, "all 15 paid slots are claimed")
+        code = mint_contributor_code(signer_firm.strip(), email, phone=phone.strip())
+        cid = _contributor_id(code)
+        cur = con.execute(
+            """INSERT INTO paid_dossiers (contributor_id, payout_usd, agreement_version)
+               VALUES (?,?,?)""",
+            (cid, PAID_PAYOUT_USD, PAID_TERMS_VERSION))
+        paid_id = cur.lastrowid
+        con.execute(
+            """INSERT INTO agreement_acceptances
+               (contributor_id, agreement_version, signer_name, signer_firm)
+               VALUES (?,?,?,?)""",
+            (cid, PAID_TERMS_VERSION, signer_name.strip(), signer_firm.strip()))
+        con.commit()
+    finally:
+        con.close()
+    return {"ok": True, "paid_dossier_id": paid_id,
+            "contributor_code": code, "payout_usd": PAID_PAYOUT_USD}
+
+
+@app.post("/api/earn/{paid_id}/status")
+def api_earn_status(
+    paid_id: int,
+    _auth: bool = Depends(require_api_key),
+    status: str = Form(...),
+    dossier_id: int = Form(None),
+    notes: str = Form(""),
+):
+    """Advance a paid dossier through the pipeline. Manual in the pilot: he runs verification."""
+    if status not in PAID_STATUSES:
+        raise HTTPException(400, f"unknown status: {status}")
+    con = db()
+    try:
+        _ensure_paid_table(con)
+        row = con.execute("SELECT * FROM paid_dossiers WHERE id=?", (paid_id,)).fetchone()
+        if not row:
+            raise HTTPException(404, "paid dossier not found")
+        if status == "verified":
+            _, _, remaining = _paid_slots(con)
+            if row["status"] not in ("verified", "paid") and remaining <= 0:
+                raise HTTPException(400, "all 15 paid slots are claimed")
+        updates = ["status=?"]
+        params: list = [status]
+        if dossier_id:
+            updates.append("dossier_id=?")
+            params.append(dossier_id)
+        if status == "verified" and not row["verified_at"]:
+            updates.append("verified_at=datetime('now')")
+        if status == "paid":
+            updates.append("paid_at=datetime('now')")
+        if notes:
+            updates.append("notes=?")
+            params.append(notes)
+        params.append(paid_id)
+        con.execute(f"UPDATE paid_dossiers SET {', '.join(updates)} WHERE id=?", params)
+        con.commit()
+    finally:
+        con.close()
+    return {"ok": True, "paid_dossier_id": paid_id, "status": status}
+
 
 @app.post("/api/expert-leads")
 def api_expert_lead(

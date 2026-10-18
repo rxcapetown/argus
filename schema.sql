@@ -75,6 +75,21 @@ CREATE TABLE IF NOT EXISTS verifications (
 -- Business rule (enforced in the API, not expressible as a CHECK across tables):
 -- verifier_contributor_id MUST differ from the annotation's contributor_id.
 
+CREATE TABLE IF NOT EXISTS paid_dossiers (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    contributor_id   INTEGER NOT NULL REFERENCES contributors(id),
+    dossier_id       INTEGER REFERENCES dossiers(id),  -- linked once ingested
+    status           TEXT NOT NULL DEFAULT 'registered',
+    -- registered | documents_received | redacted | annotated |
+    -- in_verification | verified | paid | rejected
+    payout_usd       REAL NOT NULL DEFAULT 1000,
+    agreement_version TEXT,
+    registered_at    TEXT NOT NULL DEFAULT (datetime('now')),
+    verified_at      TEXT,
+    paid_at          TEXT,
+    notes            TEXT
+);
+
 CREATE TABLE IF NOT EXISTS agreement_acceptances (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     contributor_id INTEGER NOT NULL REFERENCES contributors(id),
