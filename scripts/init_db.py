@@ -62,8 +62,15 @@ def _saved_shipment_documents() -> list:
         "id, shipment_id, job_id, doc_type, filename, created_at")
 
 
+def _saved_partner_applications() -> list:
+    return _saved_table(
+        "partner_applications",
+        "id, company_name, company_email, website, phone, country, city, created_at")
+
+
 def main() -> None:
     leads = _saved_leads()  # preserve across rebuilds (volume-backed DBs)
+    partner_apps = _saved_partner_applications()
     contributors = _saved_contributors()
     if DB.exists():
         DB.unlink()
@@ -77,6 +84,13 @@ def main() -> None:
                (first_name, last_name, company, phone, email, source, created_at)
                VALUES (?,?,?,?,?,?,?)""",
             leads,
+        )
+    if partner_apps:
+        cur.executemany(
+            """INSERT OR IGNORE INTO partner_applications
+               (id, company_name, company_email, website, phone, country, city, created_at)
+               VALUES (?,?,?,?,?,?,?,?)""",
+            partner_apps,
         )
     if contributors:
         cur.executemany(

@@ -151,6 +151,17 @@ CREATE TABLE IF NOT EXISTS expert_leads (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS partner_applications (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_name  TEXT NOT NULL,
+    company_email TEXT NOT NULL,
+    website       TEXT,
+    phone         TEXT NOT NULL,
+    country       TEXT NOT NULL,
+    city          TEXT NOT NULL,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS eval_notify (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     email      TEXT NOT NULL UNIQUE,

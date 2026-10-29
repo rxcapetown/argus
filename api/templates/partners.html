@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Become an expert data partner{% endblock %}
+{% block content %}
+<h1>Become an expert data partner</h1>
+<p style="font-size:1.15rem">Argus Data Labs builds verified trade judgment data for AI training. We partner with freight companies and customs brokerages whose people make these calls every day.</p>
+
+<div class="card" style="border:2px solid #1a1a1a">
+<h2>What partners do</h2>
+<ol>
+<li><strong>Contribute real shipment cases.</strong> Complete document sets from shipments your team handled. Names and account details are stripped before anything enters the corpus. Values stay in: that is the signal.</li>
+<li><strong>Put senior experts on the checking panel.</strong> Every case is worked by one expert and checked by a second. Partner experts do both.</li>
+<li><strong>Get paid for verified work.</strong> Partnership terms, including pay per verified case, are agreed in writing before any data moves.</li>
+</ol>
+</div>
+
+<div class="panel">
+<div class="card">
+<h2>Who this fits</h2>
+<ul>
+<li>Freight forwarders and customs brokerages with real export volume</li>
+<li>Teams in North America, South Asia, the Middle East, and Southeast Asia</li>
+<li>Senior staff who can judge a shipment file, not just process one</li>
+</ul>
+</div>
+<div class="card">
+<h2>How it starts</h2>
+<ul>
+<li>Apply below. We reply to the company email you give us.</li>
+<li>A short call to map your lanes and volumes.</li>
+<li>Written terms first. Data only moves after both sides sign.</li>
+</ul>
+</div>
+</div>
+
+<h2>Apply</h2>
+<div class="card">
+<form id="partner-form">
+<p><label>Company name<br><input name="company_name" required style="width:100%;max-width:24rem"></label></p>
+<p><label>Company email<br><input name="company_email" type="email" required style="width:100%;max-width:24rem"></label></p>
+<p><label>Website<br><input name="website" style="width:100%;max-width:24rem" placeholder="https://"></label></p>
+<p><label>Phone number<br><input name="phone" type="tel" required style="width:100%;max-width:24rem"></label></p>
+<p><label>Country<br><input name="country" required style="width:100%;max-width:24rem"></label></p>
+<p><label>City<br><input name="city" required style="width:100%;max-width:24rem"></label></p>
+<p><button type="submit">Apply to partner</button></p>
+</form>
+<div id="partner-done" style="display:none">
+<h3>Application received.</h3>
+<p>Thanks for applying. We review every application and reply to your company email.</p>
+</div>
+<div id="partner-error" style="display:none;color:#a00"></div>
+</div>
+
+<script>
+document.getElementById("partner-form").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const err=document.getElementById("partner-error"); err.style.display="none";
+  const fd=new FormData(e.target);
+  try{
+    const r=await fetch("/api/partner-applications",{method:"POST",body:fd});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.detail||"application failed");
+    document.getElementById("partner-form").style.display="none";
+    document.getElementById("partner-done").style.display="block";
+  }catch(ex){
+    err.textContent=ex.message; err.style.display="block";
+  }
+});
+</script>
+{% endblock %}

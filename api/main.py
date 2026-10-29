@@ -897,6 +897,11 @@ PAID_PAYOUT_USD = 1000.0
 PAID_STATUSES = ("registered", "documents_received", "redacted", "annotated",
                  "in_verification", "verified", "paid", "rejected")
 
+# Paid program paused 2026-10-28 at the founder's direction. /earn now redirects
+# to the partnership page (/partners). The paid routes and data stay in place so
+# the program can be restored by flipping this flag. Registration stays closed.
+EARN_PAUSED = True
+
 
 def _paid_slots(con) -> tuple[int, int, int]:
     """(cap, claimed, remaining). A slot is claimed when a dossier is verified or paid."""
@@ -922,8 +927,16 @@ def _ensure_paid_table(con):
     )
 
 
+@app.get("/partners", response_class=HTMLResponse)
+def partners_page(request: Request):
+    return templates.TemplateResponse(request, "partners.html",
+                                      _template_ctx(request))
+
+
 @app.get("/earn", response_class=HTMLResponse)
 def earn_page(request: Request):
+    if EARN_PAUSED:
+        return RedirectResponse("/partners", status_code=303)
     return templates.TemplateResponse(request, "earn.html", _template_ctx(
         request, paid_terms_title=PAID_TERMS_TITLE,
         paid_terms_version=PAID_TERMS_VERSION,
@@ -932,6 +945,8 @@ def earn_page(request: Request):
 
 @app.get("/earn/queue", response_class=HTMLResponse)
 def earn_queue(request: Request):
+    if EARN_PAUSED:
+        return RedirectResponse("/partners", status_code=303)
     con = db()
     try:
         _ensure_paid_table(con)
@@ -957,6 +972,8 @@ def api_earn_slots():
         cap, claimed, remaining = _paid_slots(con)
     finally:
         con.close()
+    if EARN_PAUSED:
+        return {"cap": cap, "claimed": claimed, "remaining": 0, "paused": True}
     return {"cap": cap, "claimed": claimed, "remaining": remaining}
 
 
@@ -969,6 +986,8 @@ def api_earn_register(
     terms_accepted: str = Form(""),
 ):
     """Register a forwarder for the paid dossier program. Open: same as the demo."""
+    if EARN_PAUSED:
+        raise HTTPException(410, "the paid dossier program is paused; registration is closed")
     if terms_accepted != "1":
         raise HTTPException(400, "paid terms must be accepted")
     email = email.strip().lower()
@@ -1038,6 +1057,98 @@ def api_earn_status(
     finally:
         con.close()
     return {"ok": True, "paid_dossier_id": paid_id, "status": status}
+
+
+# ---------- expert data partner applications (/partners) ----------
+
+def _ensure_partner_table(con):
+    con.execute(
+        """CREATE TABLE IF NOT EXISTS partner_applications (
+               id INTEGER PRIMARY KEY AUTOINCREMENT,
+               company_name TEXT NOT NULL,
+               company_email TEXT NOT NULL,
+               website TEXT,
+               phone TEXT NOT NULL,
+               country TEXT NOT NULL,
+               city TEXT NOT NULL,
+               created_at TEXT NOT NULL DEFAULT (datetime('now')))"""
+    )
+
+
+@app.post("/api/partner-applications")
+def api_partner_application(
+    company_name: str = Form(...),
+    company_email: str = Form(...),
+    website: str = Form(""),
+    phone: str = Form(...),
+    country: str = Form(...),
+    city: str = Form(...),
+):
+    """Apply to become an expert data partner. Open form, same posture as the demo."""
+    company_email = company_email.strip().lower()
+    fields = [company_name.strip(), company_email, phone.strip(),
+              country.strip(), city.strip()]
+    if not all(fields) or "@" not in company_email:
+        raise HTTPException(400, "all fields except website are required and the email must be valid")
+    app_row = {"company_name": fields[0], "company_email": company_email,
+               "website": website.strip(), "phone": fields[2],
+               "country": fields[3], "city": fields[4]}
+    con = db()
+    try:
+        _ensure_partner_table(con)
+        cur = con.execute(
+            """INSERT INTO partner_applications
+               (company_name, company_email, website, phone, country, city)
+               VALUES (?,?,?,?,?,?)""",
+            (app_row["company_name"], app_row["company_email"], app_row["website"],
+             app_row["phone"], app_row["country"], app_row["city"]))
+        con.commit()
+        app_id = cur.lastrowid
+    finally:
+        con.close()
+    _notify_partner_email(app_id, app_row)  # best-effort; never blocks the application
+    return {"ok": True, "application_id": app_id}
+
+
+def _notify_partner_email(app_id: int, app_row: dict) -> None:
+    """Email the site owner about a new partner application via Resend.
+
+    Active only when RESEND_API_KEY and LEAD_NOTIFY_EMAIL are set.
+    Fail-open: any error is swallowed so applications are never blocked.
+    """
+    api_key = os.environ.get("RESEND_API_KEY", "")
+    to = os.environ.get("LEAD_NOTIFY_EMAIL", "")
+    import sys
+    print(f"[partner-application] notify: app_id={app_id} env_present={bool(api_key and to)}",
+          file=sys.stderr, flush=True)
+    if not api_key or not to:
+        return
+    try:
+        import urllib.request
+        import urllib.error
+        body = json.dumps({
+            "from": os.environ.get("LEAD_NOTIFY_FROM", "onboarding@resend.dev"),
+            "to": [to],
+            "subject": f"New expert data partner application #{app_id}: {app_row['company_name']} ({app_row['city']}, {app_row['country']})",
+            "text": (f"New expert data partner application on argusdatalabs.com:\n\n"
+                     f"Company: {app_row['company_name']}\n"
+                     f"Email: {app_row['company_email']}\n"
+                     f"Website: {app_row['website'] or '-'}\n"
+                     f"Phone: {app_row['phone']}\n"
+                     f"Country: {app_row['country']}\n"
+                     f"City: {app_row['city']}\n"
+                     f"Application ID: {app_id}\n"),
+        }).encode()
+        req = urllib.request.Request(
+            "https://api.resend.com/emails", data=body,
+            headers={"Authorization": f"Bearer {api_key}",
+                     "Content-Type": "application/json"},
+            method="POST")
+        urllib.request.urlopen(req, timeout=10).read()
+        print(f"[partner-application] notify: app_id={app_id} resend_ok", file=sys.stderr, flush=True)
+    except Exception as e:  # fail-open by design
+        print(f"[partner-application] notify: app_id={app_id} error {type(e).__name__}: {e}",
+              file=sys.stderr, flush=True)
 
 
 @app.post("/api/expert-leads")
