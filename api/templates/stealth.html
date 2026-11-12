@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Argus Data Labs | In Stealth</title>
+<meta name="description" content="Argus Data Labs builds RL environments and human-judged data for AI agents. We are in stealth and building our expert network.">
+<style>
+  :root{
+    --bg:#FFFFFF; --ink:#0B0D10; --accent:#C8A45A;
+    --dim:rgba(11,13,16,.68); --faint:rgba(11,13,16,.48);
+    --card:rgba(11,13,16,.18); --field:#FFFFFF;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
+  .serif{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;font-weight:400}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 32px}
+  a{color:var(--ink)}
+  /* top bar */
+  header{border-bottom:1px solid var(--accent)}
+  .bar{display:flex;align-items:center;justify-content:space-between;
+    padding-top:22px;padding-bottom:22px}
+  .wordmark{letter-spacing:.34em;font-size:15px;white-space:nowrap}
+  .btn{display:inline-block;background:var(--accent);color:#0B0D10;border:0;
+    font:inherit;font-size:15px;font-weight:600;letter-spacing:.02em;
+    padding:12px 26px;cursor:pointer;text-decoration:none}
+  .btn:hover{background:#d6b76e}
+  /* hero */
+  .hero{padding:110px 0 90px}
+  .label{color:var(--accent);letter-spacing:.32em;font-size:12px;margin:0 0 28px}
+  h1{font-size:52px;line-height:1.16;margin:0 0 26px;max-width:17em}
+  .sub{color:var(--dim);font-size:20px;line-height:1.6;max-width:34em;margin:0 0 40px}
+  /* sections */
+  section{border-top:1px solid var(--accent);padding:76px 0}
+  .sec-label{color:var(--accent);letter-spacing:.28em;font-size:12px;margin:0 0 22px}
+  h2{font-size:34px;line-height:1.25;margin:0 0 22px;max-width:20em}
+  .body-text{color:var(--dim);max-width:38em;margin:0}
+  .body-text + .body-text{margin-top:14px}
+  /* cards */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));
+    gap:18px;margin-top:38px}
+  .card{border:1px solid var(--card);padding:26px 26px 22px}
+  .card h3{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;
+    font-weight:400;font-size:21px;margin:0 0 8px}
+  .card p{color:var(--dim);margin:0;font-size:16px}
+  .card.quiet{border-color:rgba(11,13,16,.09)}
+  .card.quiet h3{color:var(--faint)}
+  .card.quiet p{color:var(--faint)}
+  /* form */
+  form{max-width:560px;margin-top:38px}
+  label{display:block;font-size:14px;letter-spacing:.04em;margin:0 0 8px}
+  .field{margin-bottom:24px}
+  input[type=text],input[type=email],input[type=tel],select{
+    width:100%;background:var(--field);border:1px solid var(--card);color:var(--ink);
+    font:inherit;font-size:17px;padding:13px 14px;border-radius:0;appearance:none}
+  input:focus,select:focus{outline:1px solid var(--accent);outline-offset:0}
+  .phone-row{display:flex;gap:10px}
+  .phone-row select{width:132px;flex:none}
+  .phone-row input{flex:1}
+  .consent{display:flex;gap:12px;align-items:flex-start;margin:6px 0 30px;
+    font-size:15px;color:var(--dim)}
+  .consent input{margin-top:4px;width:17px;height:17px;accent-color:var(--accent);flex:none}
+  .fineprint{color:var(--faint);font-size:14px;margin-top:22px;max-width:560px}
+  .error{color:#b3261e;font-size:15px;margin:0 0 18px;display:none}
+  .thanks{border:1px solid var(--card);padding:30px;max-width:560px;margin-top:38px;display:none}
+  .thanks p{margin:0}
+  .hp{position:absolute;left:-9999px;top:-9999px;height:1px;width:1px;overflow:hidden}
+  /* footer */
+  footer{border-top:1px solid var(--accent);padding:30px 0 44px}
+  .foot{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;
+    color:var(--faint);font-size:14px}
+  .foot a{color:var(--faint)}
+  @media (max-width:640px){
+    .wrap{padding:0 22px}
+    .hero{padding:64px 0 56px}
+    h1{font-size:36px}
+    .sub{font-size:18px}
+    h2{font-size:27px}
+    section{padding:54px 0}
+    .wordmark{letter-spacing:.22em;font-size:13px}
+    .bar .btn{padding:10px 16px;font-size:14px}
+    .phone-row{flex-direction:column}
+    .phone-row select{width:100%}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <div class="wordmark">ARGUS DATA LABS</div>
+    <a class="btn" href="#join">Join as an expert</a>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <p class="label">IN STEALTH</p>
+    <h1 class="serif">Training grounds for AI agents that act in the real economy.</h1>
+    <p class="sub">We build simulated environments where AI agents practise real transactions, and we pair them with data shaped by human judgement.</p>
+    <a class="btn" href="#join">Join as an expert</a>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <p class="sec-label">RL ENVIRONMENTS</p>
+    <p class="body-text">An RL environment is a controlled replica of a real task. An agent attempts the task, and the environment checks whether it was truly done. We are building environments for:</p>
+    <div class="cards">
+      <div class="card">
+        <h3>Storefronts</h3>
+        <p>Search, compare, check out, return and dispute.</p>
+      </div>
+      <div class="card">
+        <h3>Travel bookings</h3>
+        <p>Flights, stays, changes and cancellations.</p>
+      </div>
+      <div class="card">
+        <h3>Package shipping</h3>
+        <p>Quotes, labels, tracking, claims and redelivery.</p>
+      </div>
+      <div class="card">
+        <h3>Grocery ordering</h3>
+        <p>Baskets, substitutions, delivery slots and refunds.</p>
+      </div>
+      <div class="card quiet">
+        <h3>More in development</h3>
+        <p>Further environments are in build.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="sec-label">DATA WITH HUMAN JUDGEMENT</p>
+    <h2 class="serif">Some answers cannot be checked by a script.</h2>
+    <p class="body-text">Was the substitution reasonable? Was the refund fair? Did the agent follow what the customer actually meant? Our experts review, grade and correct agent work in the fields they know first-hand.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="sec-label">STEALTH</p>
+    <h2 class="serif">We are in stealth.</h2>
+    <p class="body-text">We are not sharing details about our team, customers or roadmap yet. Right now we are doing one thing in public: building our expert network.</p>
+  </div>
+</section>
+
+<section id="join">
+  <div class="wrap">
+    <p class="sec-label">JOIN AS AN EXPERT</p>
+    <h2 class="serif">Join the Argus Data Labs expert network.</h2>
+    <p class="body-text">We are looking for people who have done this work for real: e-commerce operations, travel, logistics, grocery retail, payments, customer support and disputes. Leave your details and we will contact you when there is work that fits.</p>
+
+    <form id="join-form" novalidate>
+      <p class="error" id="form-error"></p>
+      <div class="field">
+        <label for="f-name">Full name</label>
+        <input type="text" id="f-name" name="full_name" autocomplete="name" required>
+      </div>
+      <div class="field">
+        <label for="f-email">Email address</label>
+        <input type="email" id="f-email" name="email" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="f-phone">Phone number</label>
+        <div class="phone-row">
+          <select id="f-code" name="country_code" aria-label="Country code">
+            <option value="+1" selected>+1</option>
+            <option value="+44">+44</option>
+            <option value="+353">+353</option>
+            <option value="+61">+61</option>
+            <option value="+64">+64</option>
+            <option value="+91">+91</option>
+            <option value="+92">+92</option>
+            <option value="+880">+880</option>
+            <option value="+971">+971</option>
+            <option value="+966">+966</option>
+            <option value="+974">+974</option>
+            <option value="+65">+65</option>
+            <option value="+60">+60</option>
+            <option value="+62">+62</option>
+            <option value="+63">+63</option>
+            <option value="+66">+66</option>
+            <option value="+84">+84</option>
+            <option value="+86">+86</option>
+            <option value="+81">+81</option>
+            <option value="+82">+82</option>
+            <option value="+49">+49</option>
+            <option value="+33">+33</option>
+            <option value="+31">+31</option>
+            <option value="+34">+34</option>
+            <option value="+39">+39</option>
+            <option value="+90">+90</option>
+            <option value="+20">+20</option>
+            <option value="+27">+27</option>
+            <option value="+234">+234</option>
+            <option value="+254">+254</option>
+            <option value="+52">+52</option>
+            <option value="+55">+55</option>
+            <option value="+7">+7</option>
+          </select>
+          <input type="tel" id="f-phone" name="phone" autocomplete="tel-national" required>
+        </div>
+      </div>
+      <div class="hp" aria-hidden="true">
+        <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+      </div>
+      <input type="hidden" name="ts" id="f-ts" value="">
+      <label class="consent">
+        <input type="checkbox" id="f-consent" name="consent" required>
+        <span>I agree to be contacted by Argus Data Labs about expert work.</span>
+      </label>
+      <button class="btn" type="submit" id="submit-btn">Request to join</button>
+      <p class="fineprint">We use your details only to contact you about expert work. We do not sell or share them.</p>
+    </form>
+
+    <div class="thanks" id="form-thanks">
+      <p>Thank you. Your details are with us. We will be in touch.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <div>© 2026 Argus Data Labs. All rights reserved.</div>
+    <div><a href="/privacy">Privacy</a></div>
+  </div>
+</footer>
+
+<script>
+document.getElementById("f-ts").value = Math.floor(Date.now()/1000);
+document.getElementById("join-form").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const err = document.getElementById("form-error");
+  err.style.display = "none";
+  const showErr = (m)=>{ err.textContent = m; err.style.display = "block"; };
+  const name = document.getElementById("f-name").value.trim();
+  const email = document.getElementById("f-email").value.trim();
+  const phone = document.getElementById("f-phone").value.replace(/\D/g,"");
+  if (!name) return showErr("Please add your full name.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return showErr("Please add a valid email address.");
+  if (phone.length < 6 || phone.length > 14) return showErr("Please add a valid phone number.");
+  if (!document.getElementById("f-consent").checked) return showErr("Please tick the box so we can contact you.");
+  const btn = document.getElementById("submit-btn");
+  btn.disabled = true; btn.textContent = "Sending…";
+  try{
+    const r = await fetch("/api/expert-network", {method:"POST", body:new FormData(e.target)});
+    if (!r.ok){ const d = await r.json().catch(()=>({})); throw new Error(d.detail || "Something went wrong."); }
+    document.getElementById("join-form").style.display = "none";
+    document.getElementById("form-thanks").style.display = "block";
+    document.getElementById("form-thanks").scrollIntoView({behavior:"smooth", block:"center"});
+  }catch(ex){
+    btn.disabled = false; btn.textContent = "Request to join";
+    showErr(ex.message || "Something went wrong. Please try again.");
+  }
+});
+</script>
+</body>
+</html>

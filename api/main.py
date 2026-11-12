@@ -10,6 +10,7 @@ import os
 import re
 import secrets
 import sqlite3
+import time
 from pathlib import Path
 from typing import List
 
@@ -39,6 +40,24 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 app = FastAPI(title="Argus Data Labs: Trade Exception Corpus", version="0.1.0")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+
+# Stealth launch (2026-11-12): the public site is the single stealth page.
+# Every pre-stealth public page redirects home; the code and data stay in
+# place underneath so the demo can be restored by removing this middleware.
+_STEALTH_REDIRECT_PREFIXES = (
+    "/story", "/dossiers", "/eval", "/taxonomy", "/rulings", "/benchmarks",
+    "/redact", "/shipments", "/partners", "/earn",
+)
+
+
+@app.middleware("http")
+async def _stealth_redirects(request: Request, call_next):
+    path = request.url.path
+    if request.method == "GET" and any(
+        path == p or path.startswith(p + "/") for p in _STEALTH_REDIRECT_PREFIXES
+    ):
+        return RedirectResponse("/", status_code=303)
+    return await call_next(request)
 
 
 @app.on_event("startup")
@@ -158,15 +177,7 @@ def healthz():
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
-    stats = one(
-        """SELECT COUNT(*) AS n,
-                  SUM(CASE WHEN status='verified' THEN 1 ELSE 0 END) AS verified
-           FROM dossiers"""
-    )
-    rulings = one("SELECT COUNT(*) AS n FROM cbp_rulings")["n"]
-    codes = one("SELECT COUNT(*) AS n FROM taxonomy_codes")["n"]
-    return templates.TemplateResponse(request, "landing.html",
-        _template_ctx(request, stats=stats, rulings=rulings, codes=codes))
+    return templates.TemplateResponse(request, "stealth.html", {"request": request})
 
 
 @app.get("/story", response_class=HTMLResponse)
@@ -1220,6 +1231,124 @@ def _notify_lead_email(lead_id: int, lead: dict) -> None:
               file=sys.stderr, flush=True)
     except Exception as e:
         print(f"[expert-lead] notify: lead_id={lead_id} error {type(e).__name__}: {e}",
+              file=sys.stderr, flush=True)
+
+
+# ---------- stealth page: expert network signups ----------
+
+EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
+
+
+def _ensure_network_table(con):
+    con.execute(
+        """CREATE TABLE IF NOT EXISTS expert_network_signups (
+               id INTEGER PRIMARY KEY AUTOINCREMENT,
+               full_name TEXT NOT NULL,
+               email TEXT NOT NULL,
+               phone TEXT NOT NULL,
+               consent INTEGER NOT NULL DEFAULT 1,
+               created_at TEXT NOT NULL DEFAULT (datetime('now')))"""
+    )
+
+
+@app.get("/stealth", response_class=HTMLResponse)
+def stealth_page(request: Request):
+    return templates.TemplateResponse(request, "stealth.html", {"request": request})
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy_page(request: Request):
+    return templates.TemplateResponse(request, "privacy.html", {"request": request})
+
+
+@app.post("/api/expert-network")
+def api_expert_network(
+    full_name: str = Form(...),
+    email: str = Form(...),
+    country_code: str = Form(...),
+    phone: str = Form(...),
+    consent: str = Form(""),
+    website: str = Form(""),
+    ts: str = Form(""),
+):
+    """Join the expert network from the stealth page.
+
+    Spam posture: a hidden honeypot field plus a minimum fill time.
+    Bots that trip either get a quiet success response and nothing is stored.
+    """
+    if website.strip():
+        return {"ok": True}
+    try:
+        elapsed = int(time.time()) - int(ts)
+    except (TypeError, ValueError):
+        elapsed = 999
+    if elapsed < 2:
+        return {"ok": True}
+    full_name = full_name.strip()
+    email = email.strip().lower()
+    digits = re.sub(r"\D", "", phone)
+    code_digits = re.sub(r"\D", "", country_code)
+    if not full_name or not EMAIL_RE.fullmatch(email):
+        raise HTTPException(400, "a name and a valid email address are required")
+    if not code_digits or not (6 <= len(digits) <= 14):
+        raise HTTPException(400, "a valid phone number is required")
+    full_phone = f"+{code_digits}{digits}"
+    if len(full_phone) > 16:
+        raise HTTPException(400, "a valid phone number is required")
+    if consent != "on":
+        raise HTTPException(400, "consent is required")
+    signup = {"full_name": full_name, "email": email, "phone": full_phone}
+    con = db()
+    try:
+        _ensure_network_table(con)
+        cur = con.execute(
+            """INSERT INTO expert_network_signups (full_name, email, phone, consent)
+               VALUES (?,?,?,1)""",
+            (signup["full_name"], signup["email"], signup["phone"]),
+        )
+        con.commit()
+        signup_id = cur.lastrowid
+    finally:
+        con.close()
+    _notify_network_email(signup_id, signup)  # best-effort; never blocks the signup
+    return {"ok": True, "signup_id": signup_id}
+
+
+def _notify_network_email(signup_id: int, signup: dict) -> None:
+    """Email the site owner about a new expert network signup via Resend.
+
+    Active only when RESEND_API_KEY and LEAD_NOTIFY_EMAIL are set.
+    Fail-open: any error is swallowed so signups are never blocked.
+    """
+    api_key = os.environ.get("RESEND_API_KEY", "")
+    to = os.environ.get("LEAD_NOTIFY_EMAIL", "")
+    import sys
+    print(f"[expert-network] notify: signup_id={signup_id} env_present={bool(api_key and to)}",
+          file=sys.stderr, flush=True)
+    if not api_key or not to:
+        return
+    try:
+        import urllib.request
+        import urllib.error
+        body = json.dumps({
+            "from": os.environ.get("LEAD_NOTIFY_FROM", "onboarding@resend.dev"),
+            "to": [to],
+            "subject": f"New expert network signup #{signup_id}: {signup['full_name']}",
+            "text": (f"New expert network signup on argusdatalabs.com:\n\n"
+                     f"Name: {signup['full_name']}\n"
+                     f"Email: {signup['email']}\n"
+                     f"Phone: {signup['phone']}\n"
+                     f"Signup ID: {signup_id}\n"),
+        }).encode()
+        req = urllib.request.Request(
+            "https://api.resend.com/emails", data=body,
+            headers={"Authorization": f"Bearer {api_key}",
+                     "Content-Type": "application/json"},
+            method="POST")
+        urllib.request.urlopen(req, timeout=10).read()
+        print(f"[expert-network] notify: signup_id={signup_id} resend_ok", file=sys.stderr, flush=True)
+    except Exception as e:  # fail-open by design
+        print(f"[expert-network] notify: signup_id={signup_id} error {type(e).__name__}: {e}",
               file=sys.stderr, flush=True)
 
 

@@ -162,6 +162,15 @@ CREATE TABLE IF NOT EXISTS partner_applications (
     created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS expert_network_signups (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    full_name  TEXT NOT NULL,
+    email      TEXT NOT NULL,
+    phone      TEXT NOT NULL,
+    consent    INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS eval_notify (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     email      TEXT NOT NULL UNIQUE,

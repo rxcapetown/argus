@@ -68,9 +68,16 @@ def _saved_partner_applications() -> list:
         "id, company_name, company_email, website, phone, country, city, created_at")
 
 
+def _saved_network_signups() -> list:
+    return _saved_table(
+        "expert_network_signups",
+        "id, full_name, email, phone, consent, created_at")
+
+
 def main() -> None:
     leads = _saved_leads()  # preserve across rebuilds (volume-backed DBs)
     partner_apps = _saved_partner_applications()
+    network_signups = _saved_network_signups()
     contributors = _saved_contributors()
     if DB.exists():
         DB.unlink()
@@ -91,6 +98,13 @@ def main() -> None:
                (id, company_name, company_email, website, phone, country, city, created_at)
                VALUES (?,?,?,?,?,?,?,?)""",
             partner_apps,
+        )
+    if network_signups:
+        cur.executemany(
+            """INSERT OR IGNORE INTO expert_network_signups
+               (id, full_name, email, phone, consent, created_at)
+               VALUES (?,?,?,?,?,?)""",
+            network_signups,
         )
     if contributors:
         cur.executemany(
