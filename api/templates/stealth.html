@@ -9,7 +9,7 @@
   :root{
     --bg:#FFFFFF; --ink:#0B0D10; --accent:#C8A45A;
     --dim:rgba(11,13,16,.68); --faint:rgba(11,13,16,.48);
-    --card:rgba(11,13,16,.18); --field:#FFFFFF;
+    --line:rgba(11,13,16,.16); --field:#FFFFFF;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
@@ -17,7 +17,7 @@
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
     font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
   .serif{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;font-weight:400}
-  .wrap{max-width:1060px;margin:0 auto;padding:0 32px}
+  .wrap{max-width:880px;margin:0 auto;padding:0 32px}
   a{color:var(--ink)}
   /* top bar */
   header{border-bottom:1px solid var(--accent)}
@@ -28,61 +28,46 @@
     font:inherit;font-size:15px;font-weight:600;letter-spacing:.02em;
     padding:12px 26px;cursor:pointer;text-decoration:none}
   .btn:hover{background:#d6b76e}
-  /* hero */
-  .hero{padding:110px 0 90px}
-  .label{color:var(--accent);letter-spacing:.32em;font-size:12px;margin:0 0 28px}
-  h1{font-size:52px;line-height:1.16;margin:0 0 26px;max-width:17em}
-  .sub{color:var(--dim);font-size:20px;line-height:1.6;max-width:34em;margin:0 0 22px}
-  .thesis{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;
-    font-size:22px;line-height:1.5;max-width:32em;margin:0 0 42px}
+  /* statement hero */
+  .hero{padding:120px 0 100px}
+  .label{color:var(--accent);letter-spacing:.32em;font-size:12px;margin:0 0 34px}
+  h1{font-size:46px;line-height:1.3;margin:0 0 34px}
+  .hero p{color:var(--dim);font-size:20px;line-height:1.65;max-width:36em;margin:0 0 24px}
+  .hero p.lede{color:var(--ink)}
   /* sections */
-  section{border-top:1px solid var(--accent);padding:76px 0}
+  section{border-top:1px solid var(--line);padding:72px 0}
   .sec-label{color:var(--accent);letter-spacing:.28em;font-size:12px;margin:0 0 22px}
-  h2{font-size:34px;line-height:1.25;margin:0 0 22px;max-width:22em}
+  h2{font-size:32px;line-height:1.3;margin:0 0 20px}
   .body-text{color:var(--dim);max-width:38em;margin:0}
   .body-text + .body-text{margin-top:14px}
-  /* numbered work items */
-  .work{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));
-    gap:34px;margin-top:44px}
-  .work-item .num{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;
-    color:var(--accent);font-size:30px;display:block;margin-bottom:12px}
-  .work-item h3{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;
-    font-weight:400;font-size:22px;margin:0 0 8px}
-  .work-item p{color:var(--dim);margin:0;font-size:16px}
-  /* cards */
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));
-    gap:18px;margin-top:38px}
-  .card{border:1px solid var(--card);padding:26px 26px 22px}
-  .card h3{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;
-    font-weight:400;font-size:21px;margin:0 0 8px}
-  .card p{color:var(--dim);margin:0;font-size:16px}
-  .card.quiet{border-color:rgba(11,13,16,.09)}
-  .card.quiet h3{color:var(--faint)}
-  .card.quiet p{color:var(--faint)}
-  /* eval method rows */
-  .rows{margin-top:40px;border-top:1px solid var(--card)}
-  .row{display:grid;grid-template-columns:220px 1fr;gap:26px;
-    padding:24px 0;border-bottom:1px solid var(--card)}
+  /* plain rows */
+  .rows{margin-top:36px;border-top:1px solid var(--line)}
+  .row{display:grid;grid-template-columns:230px 1fr;gap:26px;
+    padding:24px 0;border-bottom:1px solid var(--line)}
   .row h3{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;
     font-weight:400;font-size:21px;margin:0}
-  .row p{color:var(--dim);margin:0;max-width:36em}
-  /* literature */
-  .lit{margin-top:40px;border-top:1px solid var(--card)}
-  .lit-item{padding:24px 0;border-bottom:1px solid var(--card)}
-  .lit-item h3{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;
-    font-weight:400;font-size:21px;margin:0 0 4px}
-  .lit-item h3 a{text-decoration:none}
-  .lit-item h3 a:hover{text-decoration:underline}
-  .lit-meta{color:var(--accent);font-size:13px;letter-spacing:.14em;margin:0 0 8px}
-  .lit-item p{color:var(--dim);margin:0;max-width:38em}
+  .row p{color:var(--dim);margin:0;max-width:34em}
+  /* reading list */
+  .reading{margin-top:30px;border-top:1px solid var(--line)}
+  .reading a{display:flex;justify-content:space-between;gap:20px;
+    padding:18px 0;border-bottom:1px solid var(--line);text-decoration:none}
+  .reading a:hover .rt{text-decoration:underline}
+  .reading .rt{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;font-size:19px}
+  .reading .rm{color:var(--faint);font-size:14px;white-space:nowrap;padding-top:4px}
   /* form */
   form{max-width:560px;margin-top:38px}
   label{display:block;font-size:14px;letter-spacing:.04em;margin:0 0 8px}
   .field{margin-bottom:24px}
-  input[type=text],input[type=email],input[type=tel],select{
-    width:100%;background:var(--field);border:1px solid var(--card);color:var(--ink);
+  input[type=text],input[type=email],input[type=tel],select,textarea{
+    width:100%;background:var(--field);border:1px solid var(--line);color:var(--ink);
     font:inherit;font-size:17px;padding:13px 14px;border-radius:0;appearance:none}
-  input:focus,select:focus{outline:1px solid var(--accent);outline-offset:0}
+  textarea{resize:vertical;min-height:84px}
+  input:focus,select:focus,textarea:focus{outline:1px solid var(--accent);outline-offset:0}
+  .checks{border:0;padding:0;margin:0}
+  .checks legend{font-size:14px;letter-spacing:.04em;padding:0;margin-bottom:10px}
+  .check{display:flex;gap:12px;align-items:center;font-size:16px;color:var(--ink);
+    margin:0 0 10px;cursor:pointer}
+  .check input{width:18px;height:18px;accent-color:var(--accent);flex:none;margin:0}
   .phone-row{display:flex;gap:10px}
   .phone-row select{width:132px;flex:none}
   .phone-row input{flex:1}
@@ -91,7 +76,7 @@
   .consent input{margin-top:4px;width:17px;height:17px;accent-color:var(--accent);flex:none}
   .fineprint{color:var(--faint);font-size:14px;margin-top:22px;max-width:560px}
   .error{color:#b3261e;font-size:15px;margin:0 0 18px;display:none}
-  .thanks{border:1px solid var(--card);padding:30px;max-width:560px;margin-top:38px;display:none}
+  .thanks{border:1px solid var(--line);padding:30px;max-width:560px;margin-top:38px;display:none}
   .thanks p{margin:0}
   .hp{position:absolute;left:-9999px;top:-9999px;height:1px;width:1px;overflow:hidden}
   /* footer */
@@ -101,15 +86,16 @@
   .foot a{color:var(--faint)}
   @media (max-width:640px){
     .wrap{padding:0 22px}
-    .hero{padding:64px 0 56px}
-    h1{font-size:36px}
-    .sub{font-size:18px}
-    .thesis{font-size:19px}
-    h2{font-size:27px}
-    section{padding:54px 0}
+    .hero{padding:70px 0 60px}
+    h1{font-size:31px}
+    .hero p{font-size:18px}
+    h2{font-size:26px}
+    section{padding:52px 0}
     .wordmark{letter-spacing:.22em;font-size:13px}
     .bar .btn{padding:10px 16px;font-size:14px}
     .row{grid-template-columns:1fr;gap:6px}
+    .reading a{flex-direction:column;gap:2px}
+    .reading .rm{padding-top:0}
     .phone-row{flex-direction:column}
     .phone-row select{width:100%}
   }
@@ -127,87 +113,27 @@
 <div class="hero">
   <div class="wrap">
     <p class="label">IN STEALTH</p>
-    <h1 class="serif">Training grounds for AI agents that act in the real economy.</h1>
-    <p class="sub">We build simulated environments where AI agents practise real transactions, and we pair them with data shaped by human judgement.</p>
-    <p class="thesis">As agents move from demos into production work, the bottleneck is no longer the model. It is the environment the agent trains in, and the standard its work is judged against.</p>
-    <a class="btn" href="#join">Join as an expert</a>
+    <h1 class="serif">Argus Data Labs creates RL environments for training, and human judgment for data.</h1>
+    <p class="lede">Agents are learning to do real work in every domain at once. We are generalists. We build the environments agents train in, and we supply the human judgment that tells them what good work looks like.</p>
+    <p>A script can check whether a task was completed. It cannot judge whether it was done well: whether the substitution was reasonable, the refund fair, the answer what the customer actually meant. That judgment comes from people who have done the work. It is the scarcest data in AI, and it is what we create.</p>
   </div>
 </div>
 
 <section>
   <div class="wrap">
-    <p class="sec-label">WHAT WE DO</p>
-    <h2 class="serif">Environments, evaluation, and the humans who set the standard.</h2>
-    <div class="work">
-      <div class="work-item">
-        <span class="num">01</span>
-        <h3>RL environments</h3>
-        <p>Controlled replicas of real transactions. An agent attempts the task inside the replica, and the environment records every step it took.</p>
-      </div>
-      <div class="work-item">
-        <span class="num">02</span>
-        <h3>Evals</h3>
-        <p>Tasks scored on the state the agent leaves behind, on whether it followed the rules of the domain, and on whether it can repeat the result.</p>
-      </div>
-      <div class="work-item">
-        <span class="num">03</span>
-        <h3>Data with human judgement</h3>
-        <p>Practitioners review, grade and correct agent work, and turn the hardest calls into training data.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <p class="sec-label">RL ENVIRONMENTS</p>
-    <p class="body-text">An RL environment is a controlled replica of a real task. An agent attempts the task, and the environment checks whether it was truly done. We are building environments for:</p>
-    <div class="cards">
-      <div class="card">
-        <h3>Storefronts</h3>
-        <p>Search, compare, check out, return and dispute.</p>
-      </div>
-      <div class="card">
-        <h3>Travel bookings</h3>
-        <p>Flights, stays, changes and cancellations.</p>
-      </div>
-      <div class="card">
-        <h3>Package shipping</h3>
-        <p>Quotes, labels, tracking, claims and redelivery.</p>
-      </div>
-      <div class="card">
-        <h3>Grocery ordering</h3>
-        <p>Baskets, substitutions, delivery slots and refunds.</p>
-      </div>
-      <div class="card quiet">
-        <h3>More in development</h3>
-        <p>Further environments are in build.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <p class="sec-label">EVALS</p>
-    <h2 class="serif">A task is not done because the agent says so.</h2>
-    <p class="body-text">An agent that sounds confident and books the wrong flight has not done the task. Our evals grade the work itself, in four ways.</p>
+    <p class="sec-label">WHAT WE CREATE</p>
     <div class="rows">
       <div class="row">
-        <h3>End state</h3>
-        <p>We compare the final state of the environment with the state the task required. The right order, the right booking, the right refund. Anything else is a failure, however fluent the agent sounded.</p>
+        <h3>RL environments</h3>
+        <p>Simulated worlds where agents practise real tasks and are scored on the outcome. Built for training, not demos.</p>
       </div>
       <div class="row">
-        <h3>Policy</h3>
-        <p>Real work runs on rules: fare conditions, return windows, substitution limits, refund policy. An eval checks that the agent followed the rules of the domain, not only that it reached an answer.</p>
+        <h3>Human judgment</h3>
+        <p>Experts review, grade and correct agent work against written rubrics, and a second expert checks every grade before it becomes data.</p>
       </div>
       <div class="row">
-        <h3>Repetition</h3>
-        <p>One success is an anecdote. We run the same task many times and report how often the agent succeeds, so a lucky run cannot pass as reliability.</p>
-      </div>
-      <div class="row">
-        <h3>Failure record</h3>
-        <p>Every failed run is classified: wrong item, wrong price, a rule missed, a step skipped, gave up early. The failure record is what training teams actually fix from.</p>
+        <h3>Evals</h3>
+        <p>Repeatable tests that show exactly where an agent fails: the end state it leaves behind, the rules it broke, the calls it got wrong. Categories run from coding, operations and legal to commerce and support.</p>
       </div>
     </div>
   </div>
@@ -215,56 +141,31 @@
 
 <section>
   <div class="wrap">
-    <p class="sec-label">DATA WITH HUMAN JUDGEMENT</p>
-    <h2 class="serif">Some answers cannot be checked by a script.</h2>
-    <p class="body-text">Was the substitution reasonable? Was the refund fair? Did the agent follow what the customer actually meant? Our experts review, grade and correct agent work in the fields they know first-hand.</p>
-    <p class="body-text">Each judgement is made against a written rubric, and a second expert checks the grade before it becomes data.</p>
+    <p class="sec-label">GENERALIST</p>
+    <h2 class="serif">Generalist by design.</h2>
+    <p class="body-text">We do not build for one vertical. Our environments cover storefronts, travel bookings, package shipping and grocery ordering today, and extend to customer support, payments and office operations. Wherever agents will work, there is a training ground to build and a standard to set.</p>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <p class="sec-label">LITERATURE</p>
+    <p class="sec-label">READING</p>
     <h2 class="serif">The work we build on.</h2>
     <p class="body-text">Argus is not affiliated with these projects. They are published work, and our environment and evaluation design follows where they lead.</p>
-    <div class="lit">
-      <div class="lit-item">
-        <p class="lit-meta">YAO, SHINN, RAZAVI, NARASIMHAN · 2024</p>
-        <h3><a href="https://arxiv.org/abs/2406.12045">τ-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains</a></h3>
-        <p>Agents serve simulated customers in retail and airline domains. Success is scored on the database state the agent leaves behind, and on consistency across repeated trials. Even strong agents proved unreliable.</p>
-      </div>
-      <div class="lit-item">
-        <p class="lit-meta">ZHOU ET AL. · ICLR 2024</p>
-        <h3><a href="https://arxiv.org/abs/2307.13854">WebArena: A Realistic Web Environment for Building Autonomous Agents</a></h3>
-        <p>Fully working replicas of real websites, including an e-commerce store, graded on functional correctness rather than plausible answers. The best agent in the paper finished far behind human performance.</p>
-      </div>
-      <div class="lit-item">
-        <p class="lit-meta">XIE ET AL. · NEURIPS 2024</p>
-        <h3><a href="https://arxiv.org/abs/2404.07972">OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments</a></h3>
-        <p>Open-ended tasks inside real computer environments, checked by execution. At release, humans completed 72% of tasks. The best model completed 12%.</p>
-      </div>
-      <div class="lit-item">
-        <p class="lit-meta">ZHENG ET AL. · NEURIPS 2023</p>
-        <h3><a href="https://arxiv.org/abs/2306.05685">Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena</a></h3>
-        <p>The study of automated judges: where they agree with people, and where they bend, toward the first answer, the longer answer, their own output. It is the reason human judgement stays in our grading loop.</p>
-      </div>
+    <div class="reading">
+      <a href="https://arxiv.org/abs/2406.12045"><span class="rt">τ-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains</span><span class="rm">2024</span></a>
+      <a href="https://arxiv.org/abs/2307.13854"><span class="rt">WebArena: A Realistic Web Environment for Building Autonomous Agents</span><span class="rm">ICLR 2024</span></a>
+      <a href="https://arxiv.org/abs/2404.07972"><span class="rt">OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments</span><span class="rm">NeurIPS 2024</span></a>
+      <a href="https://arxiv.org/abs/2306.05685"><span class="rt">Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena</span><span class="rm">NeurIPS 2023</span></a>
     </div>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <p class="sec-label">STEALTH</p>
-    <h2 class="serif">We are in stealth.</h2>
-    <p class="body-text">We are not sharing details about our team, customers or roadmap yet. Right now we are doing one thing in public: building our expert network.</p>
   </div>
 </section>
 
 <section id="join">
   <div class="wrap">
-    <p class="sec-label">JOIN AS AN EXPERT</p>
+    <p class="sec-label">EXPERTS</p>
     <h2 class="serif">Join the Argus Data Labs expert network.</h2>
-    <p class="body-text">We are looking for people who have done this work for real: e-commerce operations, travel, logistics, grocery retail, payments, customer support and disputes. Leave your details and we will contact you when there is work that fits.</p>
+    <p class="body-text">We are in stealth, and the one thing we are doing in public is building our expert network. We are looking for people who have done this work for real: e-commerce operations, travel, logistics, grocery retail, payments, customer support and disputes. Leave your details and we will contact you when there is work that fits.</p>
 
     <form id="join-form" novalidate>
       <p class="error" id="form-error"></p>
@@ -317,6 +218,34 @@
           <input type="tel" id="f-phone" name="phone" autocomplete="tel-national" required>
         </div>
       </div>
+      <div class="field">
+        <fieldset class="checks">
+          <legend>Which eval categories do you want to work on?</legend>
+          <label class="check"><input type="checkbox" name="categories" value="Coding"> Coding</label>
+          <label class="check"><input type="checkbox" name="categories" value="Operations"> Operations</label>
+          <label class="check"><input type="checkbox" name="categories" value="Legal"> Legal</label>
+          <label class="check"><input type="checkbox" name="categories" value="Other"> Other</label>
+        </fieldset>
+      </div>
+      <div class="field">
+        <label for="f-background">What is your background? Write in two sentences.</label>
+        <textarea id="f-background" name="background" rows="3" maxlength="600" required></textarea>
+      </div>
+      <div class="field">
+        <label for="f-education">Your education level?</label>
+        <select id="f-education" name="education_level" required>
+          <option value="" selected>Select</option>
+          <option value="High school or equivalent">High school or equivalent</option>
+          <option value="Bachelor's degree">Bachelor's degree</option>
+          <option value="Master's degree">Master's degree</option>
+          <option value="Doctorate">Doctorate</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-based">Where are you currently based?</label>
+        <input type="text" id="f-based" name="based_in" maxlength="120" placeholder="City, Country" required>
+      </div>
       <div class="hp" aria-hidden="true">
         <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
       </div>
@@ -355,6 +284,10 @@ document.getElementById("join-form").addEventListener("submit", async (e)=>{
   if (!name) return showErr("Please add your full name.");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return showErr("Please add a valid email address.");
   if (phone.length < 6 || phone.length > 14) return showErr("Please add a valid phone number.");
+  if (!document.querySelector('input[name="categories"]:checked')) return showErr("Please choose at least one eval category.");
+  if (!document.getElementById("f-background").value.trim()) return showErr("Please write your background in two sentences.");
+  if (!document.getElementById("f-education").value) return showErr("Please select your education level.");
+  if (!document.getElementById("f-based").value.trim()) return showErr("Please say where you are currently based.");
   if (!document.getElementById("f-consent").checked) return showErr("Please tick the box so we can contact you.");
   const btn = document.getElementById("submit-btn");
   btn.disabled = true; btn.textContent = "Sending…";

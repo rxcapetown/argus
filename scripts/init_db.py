@@ -69,9 +69,17 @@ def _saved_partner_applications() -> list:
 
 
 def _saved_network_signups() -> list:
-    return _saved_table(
+    rows = _saved_table(
+        "expert_network_signups",
+        "id, full_name, email, phone, consent, categories, background, "
+        "education_level, based_in, created_at")
+    if rows:
+        return rows
+    # Older schema without the Q&A columns: pad them empty so signups survive.
+    old = _saved_table(
         "expert_network_signups",
         "id, full_name, email, phone, consent, created_at")
+    return [tuple(r[:5]) + ("", "", "", "") + tuple(r[5:]) for r in old]
 
 
 def main() -> None:
@@ -102,8 +110,9 @@ def main() -> None:
     if network_signups:
         cur.executemany(
             """INSERT OR IGNORE INTO expert_network_signups
-               (id, full_name, email, phone, consent, created_at)
-               VALUES (?,?,?,?,?,?)""",
+               (id, full_name, email, phone, consent, categories, background,
+                education_level, based_in, created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
             network_signups,
         )
     if contributors:

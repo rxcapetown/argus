@@ -1239,6 +1239,14 @@ def _notify_lead_email(lead_id: int, lead: dict) -> None:
 EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 
 
+NETWORK_EXTRA_COLUMNS = {
+    "categories": "TEXT NOT NULL DEFAULT ''",
+    "background": "TEXT NOT NULL DEFAULT ''",
+    "education_level": "TEXT NOT NULL DEFAULT ''",
+    "based_in": "TEXT NOT NULL DEFAULT ''",
+}
+
+
 def _ensure_network_table(con):
     con.execute(
         """CREATE TABLE IF NOT EXISTS expert_network_signups (
@@ -1247,8 +1255,16 @@ def _ensure_network_table(con):
                email TEXT NOT NULL,
                phone TEXT NOT NULL,
                consent INTEGER NOT NULL DEFAULT 1,
+               categories TEXT NOT NULL DEFAULT '',
+               background TEXT NOT NULL DEFAULT '',
+               education_level TEXT NOT NULL DEFAULT '',
+               based_in TEXT NOT NULL DEFAULT '',
                created_at TEXT NOT NULL DEFAULT (datetime('now')))"""
     )
+    existing = {row[1] for row in con.execute("PRAGMA table_info(expert_network_signups)")}
+    for col, ddl in NETWORK_EXTRA_COLUMNS.items():
+        if col not in existing:
+            con.execute(f"ALTER TABLE expert_network_signups ADD COLUMN {col} {ddl}")
 
 
 @app.get("/stealth", response_class=HTMLResponse)
@@ -1261,12 +1277,26 @@ def privacy_page(request: Request):
     return templates.TemplateResponse(request, "privacy.html", {"request": request})
 
 
+EVAL_CATEGORIES = ("Coding", "Operations", "Legal", "Other")
+EDUCATION_LEVELS = (
+    "High school or equivalent",
+    "Bachelor's degree",
+    "Master's degree",
+    "Doctorate",
+    "Other",
+)
+
+
 @app.post("/api/expert-network")
 def api_expert_network(
     full_name: str = Form(...),
     email: str = Form(...),
     country_code: str = Form(...),
     phone: str = Form(...),
+    categories: list[str] = Form([]),
+    background: str = Form(""),
+    education_level: str = Form(""),
+    based_in: str = Form(""),
     consent: str = Form(""),
     website: str = Form(""),
     ts: str = Form(""),
@@ -1297,14 +1327,33 @@ def api_expert_network(
         raise HTTPException(400, "a valid phone number is required")
     if consent != "on":
         raise HTTPException(400, "consent is required")
-    signup = {"full_name": full_name, "email": email, "phone": full_phone}
+    chosen = [c for c in dict.fromkeys(c.strip() for c in categories) if c in EVAL_CATEGORIES]
+    if not chosen:
+        raise HTTPException(400, "choose at least one eval category")
+    background = " ".join(background.split())
+    if not background or len(background) > 600:
+        raise HTTPException(400, "a short background (two sentences) is required")
+    education_level = education_level.strip()
+    if education_level not in EDUCATION_LEVELS:
+        raise HTTPException(400, "an education level is required")
+    based_in = " ".join(based_in.split())
+    if not based_in or len(based_in) > 120:
+        raise HTTPException(400, "where you are based is required")
+    signup = {
+        "full_name": full_name, "email": email, "phone": full_phone,
+        "categories": ", ".join(chosen), "background": background,
+        "education_level": education_level, "based_in": based_in,
+    }
     con = db()
     try:
         _ensure_network_table(con)
         cur = con.execute(
-            """INSERT INTO expert_network_signups (full_name, email, phone, consent)
-               VALUES (?,?,?,1)""",
-            (signup["full_name"], signup["email"], signup["phone"]),
+            """INSERT INTO expert_network_signups
+               (full_name, email, phone, consent, categories, background, education_level, based_in)
+               VALUES (?,?,?,1,?,?,?,?)""",
+            (signup["full_name"], signup["email"], signup["phone"],
+             signup["categories"], signup["background"],
+             signup["education_level"], signup["based_in"]),
         )
         con.commit()
         signup_id = cur.lastrowid
@@ -1338,6 +1387,10 @@ def _notify_network_email(signup_id: int, signup: dict) -> None:
                      f"Name: {signup['full_name']}\n"
                      f"Email: {signup['email']}\n"
                      f"Phone: {signup['phone']}\n"
+                     f"Categories: {signup.get('categories', '')}\n"
+                     f"Background: {signup.get('background', '')}\n"
+                     f"Education: {signup.get('education_level', '')}\n"
+                     f"Based in: {signup.get('based_in', '')}\n"
                      f"Signup ID: {signup_id}\n"),
         }).encode()
         req = urllib.request.Request(
